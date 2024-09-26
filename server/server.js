@@ -70,6 +70,9 @@ io.on("connection", (socket) => {
         players[socket.id].x
       }, ${players[socket.id].y})`
     );
+    io.emit("chatMessage", {
+      text: `${players[socket.id].name} has joined the server`,
+    });
 
     // Send current players to the new player
     socket.emit("currentPlayers", players);
@@ -119,11 +122,12 @@ io.on("connection", (socket) => {
     if (attacker && target) {
       const damage = attacker.stats.attack - target.stats.defense;
       target.stats.hp -= damage > 0 ? damage : 1;
-      console.log(
-        `Player ${socket.id} attacked ${targetId} for ${
-          damage > 0 ? damage : 1
-        } damage. Target HP: ${target.stats.hp}`
-      );
+      attackMsg = `Player ${socket.id} attacked ${targetId} for ${
+        damage > 0 ? damage : 1
+      } damage. Target HP: ${target.stats.hp}`;
+      io.emit("chatMessage", {
+        text: `${attackMsg}`,
+      });
 
       if (target.stats.hp <= 0) {
         // Handle player death

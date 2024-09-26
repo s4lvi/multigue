@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   socket.on("chatMessage", (message) => {
     const msgDiv = document.createElement("div");
-    msgDiv.textContent = `${message.name}: ${message.text}`;
+    msgDiv.textContent = `${message.name ?? "Server"}: ${message.text}`;
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   });
