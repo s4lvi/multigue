@@ -40,24 +40,46 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("newPlayer", player);
   });
 
+  socket.on("chatMessage", (data) => {
+    const player = world.players[socket.id];
+    if (player) {
+      const message = {
+        text: `${player.name}: ${data.text}`,
+      };
+      // Broadcast the message to all clients
+      io.emit("chatMessage", message);
+    }
+  });
+
   // Handle player movement
   socket.on("playerMovement", (movementData, callback) => {
     const player = world.players[socket.id];
     if (player) {
       const { x, y } = movementData;
-      // Validate movement based on dungeon layout
-      if (
-        world.dungeon[Math.floor(y / 32)] &&
-        world.dungeon[Math.floor(y / 32)][Math.floor(x / 32)] === 0
-      ) {
+      // Validate movement
+      if (isValidMovement(x, y)) {
         player.move(Math.floor(x), Math.floor(y));
         socket.broadcast.emit("playerMoved", player);
-        callback({ status: "ok" });
+        if (typeof callback === "function") {
+          callback({ status: "ok" });
+        }
       } else {
-        callback({ status: "error", message: "Invalid movement coordinates." });
+        if (typeof callback === "function") {
+          callback({
+            status: "error",
+            message: "Invalid movement coordinates.",
+          });
+        }
       }
     }
   });
+
+  function isValidMovement(x, y) {
+    return (
+      world.dungeon[Math.floor(y / 32)] &&
+      world.dungeon[Math.floor(y / 32)][Math.floor(x / 32)] === 0
+    );
+  }
 
   // Handle player attack
   socket.on("playerAttack", (targetId, callback) => {
