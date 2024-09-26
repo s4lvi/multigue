@@ -1,0 +1,19 @@
+[
+    {
+      "id": "sword_1",
+      "name": "Iron Sword",
+      "type": "weapon",
+      "stats": {
+        "attack": 5
+      }
+    },
+    {
+      "id": "potion_1",
+      "name": "Health Potion",
+      "type": "consumable",
+      "stats": {
+        "heal": 20
+      }
+    }
+  ]
+  

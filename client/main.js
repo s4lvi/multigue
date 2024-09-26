@@ -1,3 +1,4 @@
+/* main.js */
 document.addEventListener("DOMContentLoaded", () => {
   const socket = io(); // Connect to the server automatically
 
