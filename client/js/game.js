@@ -122,6 +122,7 @@ class GameScene extends Phaser.Scene {
   }
 
   addPlayer(playerInfo) {
+    console.log("playerInfo", playerInfo);
     this.player = new Player(
       this,
       playerInfo.x,
@@ -131,8 +132,13 @@ class GameScene extends Phaser.Scene {
       playerInfo.id,
       playerInfo.name
     );
+    // Removed redundant calls
     this.physics.add.collider(this.player, this.walls);
     this.cameras.main.startFollow(this.player);
+    this.player.setDepth(1);
+
+    // Emit a "playerReady" event to the server
+    this.socket.emit("playerReady", playerInfo.id);
   }
 
   addOtherPlayer(playerInfo) {

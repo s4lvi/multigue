@@ -12,7 +12,8 @@ class Player extends Entity {
         fontSize: "12px",
         fill: "#ffffff",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(1);
   }
 
   update() {
