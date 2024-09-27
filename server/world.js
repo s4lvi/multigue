@@ -36,7 +36,7 @@ class World {
   }
 
   loadOrCreateDungeon() {
-    // const dungeonPath = path.join(__dirname, "dungeon.json");
+    const dungeonPath = path.join(__dirname, "dungeon.json");
     // if (fs.existsSync(dungeonPath)) {
     //   console.log("Dungeon loaded from file.");
     //   return JSON.parse(fs.readFileSync(dungeonPath, "utf-8"));
