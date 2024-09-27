@@ -2,7 +2,7 @@
     {
       "id": "sword_1",
       "name": "Iron Sword",
-      "type": "weapon",
+      "type": "item",
       "stats": {
         "attack": 5
       }
@@ -10,7 +10,7 @@
     {
       "id": "potion_1",
       "name": "Health Potion",
-      "type": "consumable",
+      "type": "item",
       "stats": {
         "heal": 20
       }

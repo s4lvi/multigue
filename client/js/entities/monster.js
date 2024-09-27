@@ -12,7 +12,8 @@ class Monster extends Entity {
         fontSize: "12px",
         fill: "#ff0000", // Different color for monsters
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(1);
   }
 
   update() {

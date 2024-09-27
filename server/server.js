@@ -5,7 +5,7 @@ const http = require("http");
 const socketIo = require("socket.io");
 const path = require("path");
 const World = require("./world");
-
+const Item = require("./models/item");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -114,10 +114,13 @@ io.on("connection", (socket) => {
           io.emit("playerRespawned", target);
         } else if (targetMonster) {
           // Remove monster from the world
+
+          const body = new Item(target.id, target.name + " body", "blood", {});
+          world.items[target.id] = body;
+          io.emit("itemsData", world.items);
           delete world.monsters[target.id];
           // Optionally drop loot
           // ...
-
           // Notify clients about the updated monsters list
           io.emit("monstersData", world.monsters);
         }

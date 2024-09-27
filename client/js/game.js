@@ -22,6 +22,7 @@ class GameScene extends Phaser.Scene {
     this.load.image("chest", "assets/chest.png");
     this.load.image("wall", "assets/wall.png");
     this.load.image("floor", "assets/floor.png");
+    this.load.image("blood", "assets/blood.png");
   }
 
   create() {
@@ -200,16 +201,14 @@ class GameScene extends Phaser.Scene {
     // Add or update monsters
     Object.values(itemsData).forEach((itemData) => {
       if (this.items[itemData.id]) {
-        // Update existing monster
         const item = this.items[itemData.id];
         item.setPosition(itemData.x, itemData.y);
       } else {
-        // Add new monster
         const item = new Item(
           this,
           itemData.x,
           itemData.y,
-          "item",
+          itemData.type,
           0,
           itemData.id,
           itemData.name
@@ -285,7 +284,8 @@ class GameScene extends Phaser.Scene {
         (message) => {
           if (message.status === "error") {
             console.log(message);
-            // logic to reset player position
+            this.player.setPosition(oldPosition.x, oldPosition.y);
+            this.player.body.updateFromGameObject();
           }
         }
       );
