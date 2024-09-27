@@ -51,6 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
   socket.on("chatMessage", (message) => {
     const msgDiv = document.createElement("div");
     msgDiv.textContent = `${message.text}`;
+    if (message.type !== "player") {
+      msgDiv.style.color = "#aaa";
+    }
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   });

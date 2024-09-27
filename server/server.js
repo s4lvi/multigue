@@ -45,6 +45,7 @@ io.on("connection", (socket) => {
     if (player) {
       const message = {
         text: `${player.name}: ${data.text}`,
+        type: "player",
       };
       // Broadcast the message to all clients
       io.emit("chatMessage", message);
