@@ -150,7 +150,7 @@ class World {
   updateMonsters() {
     const playerArray = Object.values(this.players);
     Object.values(this.monsters).forEach((monster) => {
-      monster.updateAI(playerArray);
+      monster.updateAI(playerArray, this);
     });
   }
 
