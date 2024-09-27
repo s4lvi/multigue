@@ -115,14 +115,19 @@ io.on("connection", (socket) => {
         } else if (targetMonster) {
           // Remove monster from the world
 
-          const body = new Item(target.id, target.name + " body", "blood", {});
+          const body = new Item(
+            target.id,
+            target.name + " body",
+            "blood",
+            {},
+            target.x,
+            target.y
+          );
           world.items[target.id] = body;
           io.emit("itemsData", world.items);
-          delete world.monsters[target.id];
-          // Optionally drop loot
-          // ...
-          // Notify clients about the updated monsters list
+          world.monsters[target.id].active = false;
           io.emit("monstersData", world.monsters);
+          delete world.monsters[target.id];
         }
       } else {
         // Update target's stats
@@ -152,7 +157,7 @@ io.on("connection", (socket) => {
 setInterval(() => {
   world.updateMonsters();
   io.emit("monstersData", world.monsters);
-}, 1000 / 10); // Update at 30 FPS
+}, 1000 / 5); // Update at 30 FPS
 
 // Start the server
 server.listen(PORT, () => {

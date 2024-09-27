@@ -179,7 +179,12 @@ class GameScene extends Phaser.Scene {
       if (this.monsters[monsterData.id]) {
         // Update existing monster
         const monster = this.monsters[monsterData.id];
-        monster.setPosition(monsterData.x, monsterData.y);
+        if (monsterData.active === false) {
+          monster.destroy();
+          delete this.monsters[monsterData.id];
+        } else {
+          monster.setPosition(monsterData.x, monsterData.y);
+        }
       } else {
         // Add new monster
         const monster = new Monster(
@@ -198,8 +203,8 @@ class GameScene extends Phaser.Scene {
   }
 
   updateItems(itemsData) {
-    // Add or update monsters
     Object.values(itemsData).forEach((itemData) => {
+      console.log("updating items", itemData);
       if (this.items[itemData.id]) {
         const item = this.items[itemData.id];
         item.setPosition(itemData.x, itemData.y);

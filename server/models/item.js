@@ -1,10 +1,12 @@
 // models/item.js
+const Entity = require("./entity");
 
-class Item {
-  constructor(id, name, type, stats) {
+class Item extends Entity {
+  constructor(id, name, type, stats, x = 0, y = 0) {
+    super(id, name, x, y, stats);
     this.id = id;
     this.name = name;
-    this.type = type; // e.g., 'weapon', 'armor', 'consumable'
+    this.type = type;
     this.stats = stats || {};
   }
 

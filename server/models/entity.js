@@ -7,6 +7,7 @@ class Entity {
     this.x = x;
     this.y = y;
     this.stats = stats || {};
+    this.active = true;
   }
 
   move(newX, newY) {
