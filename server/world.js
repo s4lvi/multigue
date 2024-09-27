@@ -14,7 +14,25 @@ class World {
     this.items = {};
     this.chests = {};
     this.dungeon = this.loadOrCreateDungeon();
-    this.loadEntities();
+    this.loadEntityTypes();
+    this.instantiateEntities();
+  }
+
+  isTileOpen(x, y) {
+    const tileX = Math.floor(x / 32);
+    const tileY = Math.floor(y / 32);
+    if (
+      tileY >= 0 &&
+      tileY < this.dungeon.length &&
+      tileX >= 0 &&
+      tileX < this.dungeon[0].length
+    ) {
+      const tile = this.dungeon[tileY][tileX];
+      // Define which tiles are walkable
+      return tile === 0; // Only floor tiles are walkable
+    } else {
+      return false;
+    }
   }
 
   loadOrCreateDungeon() {
@@ -31,55 +49,90 @@ class World {
       return dungeon;
     }
   }
-
-  loadEntities() {
-    // Load monsters
-    const monstersData = JSON.parse(
+  // Load entity types from JSON files
+  loadEntityTypes() {
+    // Load monster types
+    this.monsterTypes = JSON.parse(
       fs.readFileSync(path.join(__dirname, "data", "monsters.json"), "utf-8")
     );
-    monstersData.forEach((monsterData) => {
-      const monster = new Monster(
-        monsterData.id,
-        monsterData.name,
-        monsterData.x,
-        monsterData.y,
-        monsterData.stats,
-        monsterData.aiState,
-        monsterData.inventory
-      );
-      this.monsters[monster.id] = monster;
-    });
 
-    // Load items
-    const itemsData = JSON.parse(
+    // Load item types
+    this.itemTypes = JSON.parse(
       fs.readFileSync(path.join(__dirname, "data", "items.json"), "utf-8")
     );
-    itemsData.forEach((itemData) => {
-      const item = new Item(
-        itemData.id,
-        itemData.name,
-        itemData.type,
-        itemData.stats
-      );
-      this.items[item.id] = item;
+
+    // Load chest types if necessary
+  }
+
+  instantiateEntities() {
+    // Instantiate monsters
+    this.monsterTypes.forEach((monsterType) => {
+      const numInstances = randomInt(15, 25); // Adjust the number of instances as needed
+      for (let i = 0; i < numInstances; i++) {
+        let x, y;
+        // Find a random open tile
+        do {
+          x = randomInt(0, this.dungeon[0].length - 1) * 32;
+          y = randomInt(0, this.dungeon.length - 1) * 32;
+        } while (!this.isTileOpen(x, y));
+
+        const monsterId = generateUniqueId();
+        const monster = new Monster(
+          monsterId,
+          monsterType.name,
+          x,
+          y,
+          { ...monsterType.stats },
+          monsterType.aiState,
+          monsterType.inventory.slice()
+        );
+        this.monsters[monsterId] = monster;
+      }
+    });
+    // Instantiate items
+    this.itemTypes.forEach((itemType) => {
+      const numInstances = randomInt(3, 7); // Adjust as needed
+      for (let i = 0; i < numInstances; i++) {
+        let x, y;
+        // Find a random open tile
+        do {
+          x = randomInt(0, this.dungeon[0].length - 1) * 32;
+          y = randomInt(0, this.dungeon.length - 1) * 32;
+        } while (!this.isTileOpen(x, y));
+
+        const itemId = generateUniqueId();
+        const item = new Item(
+          itemId,
+          itemType.name,
+          itemType.itemType,
+          { ...itemType.stats },
+          x,
+          y
+        );
+        this.items[itemId] = item;
+      }
     });
 
     // Load chests
-    const chestsData = JSON.parse(
-      fs.readFileSync(path.join(__dirname, "data", "chests.json"), "utf-8")
-    );
-    chestsData.forEach((chestData) => {
-      this.chests[chestData.id] = {
-        x: chestData.x,
-        y: chestData.y,
-        inventory: chestData.inventory.map((itemId) => this.items[itemId]),
-      };
-    });
+    // const chestsData = JSON.parse(
+    //   fs.readFileSync(path.join(__dirname, "data", "chests.json"), "utf-8")
+    // );
+    // chestsData.forEach((chestData) => {
+    //   this.chests[chestData.id] = {
+    //     x: chestData.x,
+    //     y: chestData.y,
+    //     inventory: chestData.inventory.map((itemId) => this.items[itemId]),
+    //   };
+    // });
   }
 
   addPlayer(socketId, playerName) {
-    const startX = Math.floor(Math.random() * this.dungeon[0].length) * 32;
-    const startY = Math.floor(Math.random() * this.dungeon.length) * 32;
+    let startX, startY;
+    // Find a random open tile
+    do {
+      startX = randomInt(0, this.dungeon[0].length - 1) * 32;
+      startY = randomInt(0, this.dungeon.length - 1) * 32;
+    } while (!this.isTileOpen(startX, startY));
     const player = new Player(socketId, playerName, startX, startY, {
       hp: 100,
       attack: 10,
@@ -103,5 +156,12 @@ class World {
 
   // Other world-related methods can be added here
 }
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
 
+let uniqueIdCounter = 0;
+function generateUniqueId() {
+  return `entity_${uniqueIdCounter++}`;
+}
 module.exports = World;

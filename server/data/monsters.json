@@ -1,31 +1,25 @@
+
 [
-    {
-      "id": "goblin_1",
-      "name": "Goblin",
-      "x": 100,
-      "y": 150,
-      "stats": {
-        "hp": 30,
-        "attack": 5,
-        "defense": 2,
-        "speed": 5
-      },
-      "aiState": "idle",
-      "inventory": []
+  {
+    "type": "goblin",
+    "name": "Goblin",
+    "stats": {
+      "hp": 30,
+      "attack": 5,
+      "defense": 2
     },
-    {
-      "id": "orc_1",
-      "name": "Orc",
-      "x": 500,
-      "y": 550,
-      "stats": {
-        "hp": 50,
-        "attack": 10,
-        "defense": 5,
-        "speed": 5
-      },
-      "aiState": "idle",
-      "inventory": []
-    }
-  ]
-  
+    "aiState": "idle",
+    "inventory": []
+  },
+  {
+    "type": "orc",
+    "name": "Orc",
+    "stats": {
+      "hp": 50,
+      "attack": 10,
+      "defense": 5
+    },
+    "aiState": "idle",
+    "inventory": []
+  }
+]

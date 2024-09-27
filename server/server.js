@@ -75,11 +75,10 @@ io.on("connection", (socket) => {
     }
   });
 
+  // server.js
+
   function isValidMovement(x, y) {
-    return (
-      world.dungeon[Math.floor(y / 32)] &&
-      world.dungeon[Math.floor(y / 32)][Math.floor(x / 32)] === 0
-    );
+    return world.isTileOpen(x, y);
   }
 
   // Handle player attack

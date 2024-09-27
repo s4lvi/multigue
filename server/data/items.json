@@ -1,19 +1,19 @@
+
 [
-    {
-      "id": "sword_1",
-      "name": "Iron Sword",
-      "type": "item",
-      "stats": {
-        "attack": 5
-      }
-    },
-    {
-      "id": "potion_1",
-      "name": "Health Potion",
-      "type": "item",
-      "stats": {
-        "heal": 20
-      }
+  {
+    "type": "potion",
+    "name": "Health Potion",
+    "itemType": "consumable",
+    "stats": {
+      "heal": 20
     }
-  ]
-  
+  },
+  {
+    "type": "sword",
+    "name": "Iron Sword",
+    "itemType": "weapon",
+    "stats": {
+      "attack": 5
+    }
+  }
+]

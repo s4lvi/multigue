@@ -65,9 +65,9 @@ class GameScene extends Phaser.Scene {
     for (let y = 0; y < dungeon.length; y++) {
       for (let x = 0; x < dungeon[y].length; x++) {
         if (dungeon[y][x] === 1) {
-          this.walls.create(x * tileSize, y * tileSize, "wall").setOrigin(0);
+          this.walls.create(x * tileSize, y * tileSize, "wall").setOrigin(0.5);
         } else {
-          this.add.image(x * tileSize, y * tileSize, "floor").setOrigin(0);
+          this.add.image(x * tileSize, y * tileSize, "floor").setOrigin(0.5);
         }
       }
     }
@@ -154,6 +154,7 @@ class GameScene extends Phaser.Scene {
     // Removed redundant calls
     this.physics.add.collider(this.player, this.walls);
     this.cameras.main.startFollow(this.player);
+    this.player.setOrigin(0.5);
     this.player.setDepth(1);
 
     // Emit a "playerReady" event to the server
