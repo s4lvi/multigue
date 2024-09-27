@@ -149,7 +149,7 @@ io.on("connection", (socket) => {
 setInterval(() => {
   world.updateMonsters();
   io.emit("monstersData", world.monsters);
-}, 1000 / 30); // Update at 30 FPS
+}, 1000 / 10); // Update at 30 FPS
 
 // Start the server
 server.listen(PORT, () => {

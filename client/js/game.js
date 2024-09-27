@@ -70,6 +70,9 @@ class GameScene extends Phaser.Scene {
         }
       }
     }
+    if (this.player) {
+      this.physics.add.collider(this.player, this.walls);
+    }
   }
 
   handleSocketEvents() {
@@ -80,6 +83,21 @@ class GameScene extends Phaser.Scene {
       console.log("Received dungeon data");
       window.dungeonData = dungeon;
       self.createDungeon();
+    });
+
+    this.socket.on("monstersData", function (monsters) {
+      console.log("Received monsters data");
+      self.updateMonsters(monsters);
+    });
+
+    this.socket.on("itemsData", function (items) {
+      console.log("Received items data");
+      self.updateItems(items);
+    });
+
+    this.socket.on("chestsData", function (chests) {
+      console.log("Received chests data");
+      self.updateChests(chests);
     });
 
     // Receive current players
@@ -172,17 +190,58 @@ class GameScene extends Phaser.Scene {
           monsterData.id,
           monsterData.name
         );
+        monster.setDepth(1);
         this.monsters[monsterData.id] = monster;
       }
     });
   }
 
   updateItems(itemsData) {
-    // Similar to updateMonsters
+    // Add or update monsters
+    Object.values(itemsData).forEach((itemData) => {
+      if (this.items[itemData.id]) {
+        // Update existing monster
+        const item = this.items[itemData.id];
+        item.setPosition(itemData.x, itemData.y);
+      } else {
+        // Add new monster
+        const item = new Item(
+          this,
+          itemData.x,
+          itemData.y,
+          "item",
+          0,
+          itemData.id,
+          itemData.name
+        );
+        item.setDepth(1);
+        this.items[itemsData.id] = item;
+      }
+    });
   }
 
   updateChests(chestsData) {
-    // Similar to updateMonsters
+    // Add or update monsters
+    Object.values(chestsData).forEach((chestData) => {
+      if (this.chests[chestData.id]) {
+        // Update existing monster
+        const chest = this.chests[chestData.id];
+        chest.setPosition(chestData.x, chestData.y);
+      } else {
+        // Add new monster
+        const chest = new Chest(
+          this,
+          chestData.x,
+          chestData.y,
+          "chest",
+          0,
+          chestData.id,
+          chestData.name
+        );
+        chest.setDepth(1);
+        this.chests[chestsData.id] = chest;
+      }
+    });
   }
 
   removeEntity(entityId) {
@@ -217,10 +276,19 @@ class GameScene extends Phaser.Scene {
       (this.player.x !== this.player.oldPosition.x ||
         this.player.y !== this.player.oldPosition.y)
     ) {
-      this.socket.emit("playerMovement", {
-        x: this.player.x,
-        y: this.player.y,
-      });
+      this.socket.emit(
+        "playerMovement",
+        {
+          x: this.player.x,
+          y: this.player.y,
+        },
+        (message) => {
+          if (message.status === "error") {
+            console.log(message);
+            // logic to reset player position
+          }
+        }
+      );
     }
 
     // Save old position
@@ -234,7 +302,11 @@ class GameScene extends Phaser.Scene {
       // Simplified attack logic
       const target = this.findTargetInRange();
       if (target) {
-        this.socket.emit("playerAttack", target.id);
+        this.socket.emit("playerAttack", target.id, (message) => {
+          if (message.status === "error") {
+            console.log(message);
+          }
+        });
       }
     }
   }
