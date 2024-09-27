@@ -99,7 +99,7 @@ io.on("connection", (socket) => {
       target.stats.hp -= damage;
 
       io.emit("chatMessage", {
-        text: `${attacker.name} attacked ${target.name} for ${damage} damage. ${target.name} HP: ${target.stats.hp}`,
+        text: `${attacker.name} attacked ${target.name} for ${damage} damage.`,
       });
 
       if (target.stats.hp <= 0) {
@@ -127,6 +127,9 @@ io.on("connection", (socket) => {
           io.emit("itemsData", world.items);
           world.monsters[target.id].active = false;
           io.emit("monstersData", world.monsters);
+          io.emit("chatMessage", {
+            text: `${attacker.name} killed ${target.name}`,
+          });
           delete world.monsters[target.id];
         }
       } else {

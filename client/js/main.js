@@ -45,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       socket.emit("chatMessage", message);
       chatInput.value = "";
+      chatInput.blur();
     }
   });
   socket.on("chatMessage", (message) => {
