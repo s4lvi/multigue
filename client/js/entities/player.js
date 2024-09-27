@@ -3,7 +3,7 @@
 import Entity from "./entity.js";
 
 class Player extends Entity {
-  constructor(scene, x, y, texture, frame, id, name) {
+  constructor(scene, x, y, texture, frame, id, name, stats) {
     super(scene, x, y, texture, frame);
     this.id = id;
     this.name = name;
@@ -14,6 +14,7 @@ class Player extends Entity {
       })
       .setOrigin(0.5)
       .setDepth(1);
+    this.stats = stats || {};
   }
 
   update() {

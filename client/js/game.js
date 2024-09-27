@@ -17,7 +17,8 @@ class GameScene extends Phaser.Scene {
   preload() {
     // Load assets
     this.load.image("player", "assets/player.png");
-    this.load.image("monster", "assets/monster.png");
+    this.load.image("kobold", "assets/kobold.png");
+    this.load.image("orc", "assets/orc.png");
     this.load.image("item", "assets/item.png");
     this.load.image("chest", "assets/chest.png");
     this.load.image("wall", "assets/wall.png");
@@ -149,14 +150,19 @@ class GameScene extends Phaser.Scene {
       "player",
       0,
       playerInfo.id,
-      playerInfo.name
+      playerInfo.name,
+      {
+        attack: playerInfo.stats.attack,
+        defense: playerInfo.stats.defense,
+        hp: playerInfo.stats.hp,
+      }
     );
     // Removed redundant calls
     this.physics.add.collider(this.player, this.walls);
     this.cameras.main.startFollow(this.player);
     this.player.setOrigin(0.5);
     this.player.setDepth(1);
-
+    console.log("init player", this.player);
     // Emit a "playerReady" event to the server
     this.socket.emit("playerReady", playerInfo.id);
   }
@@ -169,7 +175,8 @@ class GameScene extends Phaser.Scene {
       "player",
       0,
       playerInfo.id,
-      playerInfo.name
+      playerInfo.name,
+      playerInfo.stats
     );
     this.otherPlayers.add(otherPlayer);
   }
@@ -192,7 +199,7 @@ class GameScene extends Phaser.Scene {
           this,
           monsterData.x,
           monsterData.y,
-          "monster",
+          monsterData.type,
           0,
           monsterData.id,
           monsterData.name
@@ -308,11 +315,15 @@ class GameScene extends Phaser.Scene {
       // Simplified attack logic
       const target = this.findTargetInRange();
       if (target) {
-        this.socket.emit("playerAttack", target.id, (message) => {
-          if (message.status === "error") {
-            console.log(message);
+        this.socket.emit(
+          "attack",
+          { target: target.id, type: "player", attacker: this.socket.id },
+          (message) => {
+            if (message.status === "error") {
+              console.log(message);
+            }
           }
-        });
+        );
       }
     }
   }

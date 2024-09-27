@@ -1,15 +1,17 @@
 
 [
   {
-    "type": "goblin",
-    "name": "Goblin",
+    "type": "kobold",
+    "name": "Kobold",
     "stats": {
       "hp": 30,
       "attack": 5,
       "defense": 2
     },
     "aiState": "idle",
-    "inventory": []
+    "inventory": [],
+    "detectionRange": 5,
+    "attackRange": 1
   },
   {
     "type": "orc",
@@ -20,6 +22,8 @@
       "defense": 5
     },
     "aiState": "idle",
-    "inventory": []
+    "inventory": [],
+    "detectionRange": 7,
+    "attackRange": 1
   }
 ]

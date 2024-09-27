@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 
 class World {
-  constructor() {
+  constructor(io) {
     this.players = {};
     this.monsters = {};
     this.items = {};
@@ -16,6 +16,7 @@ class World {
     this.dungeon = this.loadOrCreateDungeon();
     this.loadEntityTypes();
     this.instantiateEntities();
+    this.io = io;
   }
 
   isTileOpen(x, y) {
@@ -84,7 +85,10 @@ class World {
           y,
           { ...monsterType.stats },
           monsterType.aiState,
-          monsterType.inventory.slice()
+          monsterType.inventory.slice(),
+          monsterType.type,
+          monsterType.detectionRange,
+          monsterType.attackRange
         );
         this.monsters[monsterId] = monster;
       }
@@ -152,6 +156,77 @@ class World {
     Object.values(this.monsters).forEach((monster) => {
       monster.updateAI(playerArray, this);
     });
+  }
+
+  attack(attackMessage, callback) {
+    let attacker;
+    if (attackMessage.type === "player") {
+      console.log(attackMessage);
+      console.log(this.players);
+      console.log(this.players[attackMessage.attacker]);
+      attacker = this.players[attackMessage.attacker];
+    } else {
+      attacker = this.monsters[attackMessage.attacker];
+    }
+    const targetPlayer = this.players[attackMessage.target];
+    const targetMonster = this.monsters[attackMessage.target];
+    if (attacker && (targetPlayer || targetMonster)) {
+      let target;
+      if (targetPlayer) {
+        target = targetPlayer;
+      } else {
+        target = targetMonster;
+      }
+
+      const damage = Math.max(attacker.stats.attack - target.stats.defense, 1);
+      target.stats.hp -= damage;
+
+      this.io.emit("chatMessage", {
+        text: `${attacker.name} attacked ${target.name} for ${damage} damage.`,
+      });
+
+      if (target.stats.hp <= 0) {
+        // Handle target death
+        this.io.emit("entityDied", target.id);
+
+        if (targetPlayer) {
+          // Respawn player
+          target.stats.hp = 100;
+          target.x = Math.floor(Math.random() * this.dungeon[0].length) * 32;
+          target.y = Math.floor(Math.random() * this.dungeon.length) * 32;
+          this.io.emit("playerRespawned", target);
+        } else if (targetMonster) {
+          // Remove monster from the world
+
+          const body = new Item(
+            target.id,
+            target.name + " body",
+            "blood",
+            {},
+            target.x,
+            target.y
+          );
+          this.items[target.id] = body;
+          this.io.emit("itemsData", this.items);
+          this.monsters[target.id].active = false;
+          this.io.emit("monstersData", this.monsters);
+          this.io.emit("chatMessage", {
+            text: `${attacker.name} killed ${target.name}`,
+          });
+          delete this.monsters[target.id];
+        }
+      } else {
+        // Update target's stats
+        if (targetPlayer) {
+          this.io.emit("playerStatsUpdate", target);
+        } else if (targetMonster) {
+          this.io.emit("monsterStatsUpdate", target);
+        }
+      }
+      callback({ status: "ok" });
+    } else {
+      callback({ status: "error", message: "Invalid attacker or target." });
+    }
   }
 
   // Other world-related methods can be added here

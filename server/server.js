@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, "..", "client")));
 
 // Initialize the game world
-const world = new World();
+const world = new World(io);
 
 // Handle player connections
 io.on("connection", (socket) => {
@@ -82,69 +82,9 @@ io.on("connection", (socket) => {
   }
 
   // Handle player attack
-  socket.on("playerAttack", (targetId, callback) => {
-    const attacker = world.players[socket.id];
-    const targetPlayer = world.players[targetId];
-    const targetMonster = world.monsters[targetId];
-
-    if (attacker && (targetPlayer || targetMonster)) {
-      let target;
-      if (targetPlayer) {
-        target = targetPlayer;
-      } else {
-        target = targetMonster;
-      }
-
-      const damage = Math.max(attacker.stats.attack - target.stats.defense, 1);
-      target.stats.hp -= damage;
-
-      io.emit("chatMessage", {
-        text: `${attacker.name} attacked ${target.name} for ${damage} damage.`,
-      });
-
-      if (target.stats.hp <= 0) {
-        // Handle target death
-        io.emit("entityDied", target.id);
-
-        if (targetPlayer) {
-          // Respawn player
-          target.stats.hp = 100;
-          target.x = Math.floor(Math.random() * world.dungeon[0].length) * 32;
-          target.y = Math.floor(Math.random() * world.dungeon.length) * 32;
-          io.emit("playerRespawned", target);
-        } else if (targetMonster) {
-          // Remove monster from the world
-
-          const body = new Item(
-            target.id,
-            target.name + " body",
-            "blood",
-            {},
-            target.x,
-            target.y
-          );
-          world.items[target.id] = body;
-          io.emit("itemsData", world.items);
-          world.monsters[target.id].active = false;
-          io.emit("monstersData", world.monsters);
-          io.emit("chatMessage", {
-            text: `${attacker.name} killed ${target.name}`,
-          });
-          delete world.monsters[target.id];
-        }
-      } else {
-        // Update target's stats
-        if (targetPlayer) {
-          io.emit("playerStatsUpdate", target);
-        } else if (targetMonster) {
-          io.emit("monsterStatsUpdate", target);
-        }
-      }
-      callback({ status: "ok" });
-    } else {
-      callback({ status: "error", message: "Invalid attacker or target." });
-    }
-  });
+  socket.on("attack", (attackMessage, callback) =>
+    world.attack(attackMessage, callback)
+  );
 
   // Handle disconnection
   socket.on("disconnect", () => {
@@ -152,15 +92,13 @@ io.on("connection", (socket) => {
     world.removePlayer(socket.id);
     io.emit("playerDisconnected", socket.id);
   });
-
-  // Additional event handlers (e.g., for items, chests, etc.) can be added here
 });
 
 // Game loop to update monsters and other entities
 setInterval(() => {
   world.updateMonsters();
   io.emit("monstersData", world.monsters);
-}, 1000 / 2); // Update at 30 FPS
+}, 1000 / 2);
 
 // Start the server
 server.listen(PORT, () => {

@@ -3,37 +3,68 @@
 const Entity = require("./entity");
 
 class Monster extends Entity {
-  constructor(id, name, x, y, stats, aiState, inventory) {
+  constructor(
+    id,
+    name,
+    x,
+    y,
+    stats,
+    aiState,
+    inventory,
+    type,
+    detectionRange,
+    attackRange
+  ) {
     super(id, name, x, y, stats);
     this.aiState = aiState || "idle";
     this.inventory = inventory || [];
+    this.type = type;
+    this.detectionRange = detectionRange * 32;
+    this.attackRange = attackRange * 32;
+    this.targetPlayer = null;
     // You can add more properties like aggression level, patrol routes, etc.
   }
 
   // Monster-specific methods like AI behaviors
   updateAI(targets, world) {
-    const detectionRange = 160; // 5 tiles * 32 pixels per tile
-    let targetPlayer = null;
     let minDistance = Infinity;
 
     // Find the nearest player within detection range
+    this.aiState = "idle";
+    this.targetPlayer = null;
+
     for (const player of targets) {
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < detectionRange && distance < minDistance) {
+      if (distance < this.attackRange && distance < minDistance) {
+        this.targetPlayer = player;
+        this.aiState = "attacking";
+      } else if (distance < this.detectionRange && distance < minDistance) {
         minDistance = distance;
-        targetPlayer = player;
+        this.targetPlayer = player;
+        this.aiState = "seeking";
       }
     }
 
-    if (targetPlayer) {
-      // Player is within detection range; move towards them
-      this.moveToward(targetPlayer.x, targetPlayer.y, world);
+    if (this.aiState === "seeking") {
+      this.moveToward(this.targetPlayer.x, this.targetPlayer.y, world);
+    } else if (this.aiState === "attacking") {
+      this.attack(this.targetPlayer, world);
     } else {
-      // Random walk
       this.randomMove(world);
     }
+  }
+
+  attack(target, world) {
+    world.attack(
+      { target: target.id, type: "monster", attacker: this.id },
+      (message) => {
+        if (message.status === "error") {
+          console.log(message);
+        }
+      }
+    );
   }
 
   moveToward(targetX, targetY, world) {
