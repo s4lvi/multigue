@@ -11,6 +11,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const joinServerBtn = document.getElementById("joinServer");
   const playerNameInput = document.getElementById("playerNameInput");
 
+  const chatMessages = document.getElementById("chatMessages");
+  const chatInput = document.getElementById("chatInput");
+
   // Handle joining the game
   joinServerBtn.addEventListener("click", () => {
     const name = playerNameInput.value.trim();
@@ -21,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     menu.style.display = "none";
     document.getElementById("gameUI").style.display = "block";
     socket.emit("playerJoined", { name });
+    window.playerName = name;
   });
 
   // Load game.js after establishing socket connection
@@ -28,5 +32,25 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Connected to server.");
     // Initialize the game
     initializeGame();
+  });
+
+  // Chat Functionality
+  chatInput.addEventListener("keydown", (event) => {
+    event.stopPropagation(); // Prevent Phaser from capturing the event
+    console.log("keydown");
+    if (event.key === "Enter" && chatInput.value.trim() !== "") {
+      const message = {
+        id: socket.id,
+        text: chatInput.value.trim(),
+      };
+      socket.emit("chatMessage", message);
+      chatInput.value = "";
+    }
+  });
+  socket.on("chatMessage", (message) => {
+    const msgDiv = document.createElement("div");
+    msgDiv.textContent = `${message.text}`;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   });
 });
