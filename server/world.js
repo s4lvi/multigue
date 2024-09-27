@@ -36,18 +36,18 @@ class World {
   }
 
   loadOrCreateDungeon() {
-    const dungeonPath = path.join(__dirname, "dungeon.json");
-    if (fs.existsSync(dungeonPath)) {
-      console.log("Dungeon loaded from file.");
-      return JSON.parse(fs.readFileSync(dungeonPath, "utf-8"));
-    } else {
-      const dungeonWidth = 100;
-      const dungeonHeight = 100;
-      const dungeon = generateDungeon(dungeonWidth, dungeonHeight);
-      fs.writeFileSync(dungeonPath, JSON.stringify(dungeon));
-      console.log("Dungeon generated and saved to file.");
-      return dungeon;
-    }
+    // const dungeonPath = path.join(__dirname, "dungeon.json");
+    // if (fs.existsSync(dungeonPath)) {
+    //   console.log("Dungeon loaded from file.");
+    //   return JSON.parse(fs.readFileSync(dungeonPath, "utf-8"));
+    // } else {
+    const dungeonWidth = 150;
+    const dungeonHeight = 150;
+    const dungeon = generateDungeon(dungeonWidth, dungeonHeight);
+    fs.writeFileSync(dungeonPath, JSON.stringify(dungeon));
+    console.log("Dungeon generated and saved to file.");
+    return dungeon;
+    // }
   }
   // Load entity types from JSON files
   loadEntityTypes() {
