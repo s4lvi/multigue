@@ -4,7 +4,7 @@ import express from "express";
 import http from "http";
 import path from "path";
 import { Server } from "socket.io";
-import WorldManager from "./worldmanager.js";
+import WorldManager from "./worldManager.js";
 import { CHUNK_SIZE, LAYERS } from "../shared/constants.js";
 import { fileURLToPath } from "url";
 
