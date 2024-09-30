@@ -1,3 +1,5 @@
+// worldManager.js
+
 import Perlin from "perlin-noise";
 import { Entity } from "../shared/Entities.js";
 import { PLAYER_RADIUS } from "../shared/constants.js";
@@ -10,7 +12,7 @@ class WorldManager {
     this.world = this.generateWorld();
   }
 
-  // worldManager.js
+  // Generate the world with improved terrain and obstacles
   generateWorld() {
     const world = {};
     const noise = Perlin.generatePerlinNoise(
@@ -81,7 +83,7 @@ class WorldManager {
       name,
       { x: 1, y: 1, z: 1 },
       { hp: 100, maxHp: 100 },
-      {}
+      { inventory: [] } // Initialize inventory
     );
     return this.players[id];
   }
@@ -117,36 +119,144 @@ class WorldManager {
     }
   }
 
-  handleInteraction(id, targetPos) {
+  // Refactored handleInteraction method
+  handleInteraction(id, targetPos, itemType) {
     const player = this.players[id];
-    const distance = Math.hypot(
-      player.position.x - targetPos.x,
-      player.position.y - targetPos.y
-    );
+    if (player) {
+      const distance = Math.hypot(
+        player.position.x - targetPos.x,
+        player.position.y - targetPos.y
+      );
 
-    if (distance <= PLAYER_RADIUS) {
-      const key = `${targetPos.x},${targetPos.y},1`;
-      const block = this.world[key];
-      for (let p in this.players) {
-        if (
-          this.players[p].position.x === targetPos.x &&
-          this.players[p].position.y === targetPos.y
-        ) {
-          return {
-            success: true,
-            type: "attack",
-            message: `${player.name} attacked ${this.players[p].name}!`,
-            target: p,
-          };
-        }
-      }
+      if (distance <= PLAYER_RADIUS) {
+        const actionType = this.getActionType(itemType);
+        const targetInfo = this.getTargetInfo(id, targetPos);
 
-      if (block && block.type === "solid") {
-        this.world[key] = { material: "none", type: "empty" };
-        return { success: true, message: "Block mined!" };
+        return this.handleAction(
+          player,
+          actionType,
+          targetInfo,
+          targetPos,
+          itemType
+        );
       }
     }
     return { success: false, message: "Out of reach or invalid action" };
+  }
+
+  // Determine the action type based on the item used
+  getActionType(itemType) {
+    const itemActionMap = {
+      hand: "use",
+      pickaxe: "hit",
+      // Add more items and their corresponding action types
+    };
+    return itemActionMap[itemType] || "use"; // Default to 'use' if unknown item
+  }
+
+  // Get information about the target being interacted with
+  getTargetInfo(playerId, targetPos) {
+    const targetKey = `${targetPos.x},${targetPos.y},${targetPos.z}`;
+    const targetBlock = this.world[targetKey];
+    const targetPlayer = Object.values(this.players).find(
+      (p) =>
+        p.position.x === targetPos.x &&
+        p.position.y === targetPos.y &&
+        p.id !== playerId
+    );
+
+    if (targetPlayer) {
+      return { type: "player", target: targetPlayer };
+    } else if (targetBlock && targetBlock.type !== "empty") {
+      return { type: "block", target: targetBlock };
+    } else {
+      return { type: "none", target: null };
+    }
+  }
+
+  // Handle the action based on action type and target type
+  handleAction(player, actionType, targetInfo, targetPos, itemType) {
+    const { type: targetType, target } = targetInfo;
+
+    if (actionType === "use") {
+      // Implement 'use' interactions
+      if (targetType === "block" && target.material === "item") {
+        // Pickup item
+        player.inventory.push(target.item);
+        delete this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`];
+        return {
+          success: true,
+          type: "pickup",
+          message: `${player.name} picked up ${target.item.name}`,
+        };
+      } else if (targetType === "player") {
+        // Implement interaction with other players (e.g., trade)
+        return {
+          success: true,
+          type: "use",
+          message: `${player.name} waved at ${target.name}`,
+        };
+      } else {
+        return { success: false, message: "Nothing to interact with" };
+      }
+    } else if (actionType === "hit") {
+      // Implement 'hit' interactions
+      if (targetType === "block" && target.type === "solid") {
+        // Mine the block
+        player.inventory.push({ type: "block", material: target.material });
+        this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`] = {
+          material: "none",
+          type: "empty",
+        };
+        return { success: true, type: "mine", message: "Block mined!" };
+      } else if (targetType === "player") {
+        // Attack another player
+        const damage = this.calculateDamage(player, itemType, target);
+        target.stats.hp -= damage;
+        const isDefeated = target.stats.hp <= 0;
+        if (isDefeated) {
+          this.handlePlayerDeath(target.id);
+        }
+        return {
+          success: true,
+          type: "attack",
+          message: isDefeated
+            ? `${player.name} defeated ${target.name}!`
+            : `${player.name} attacked ${target.name}!`,
+          target: target.id,
+          damage: damage,
+          remainingHp: target.stats.hp,
+          isDefeated: isDefeated,
+        };
+      } else {
+        return { success: false, message: "Nothing to interact with" };
+      }
+    } else {
+      return { success: false, message: "Invalid action type" };
+    }
+  }
+
+  // Calculate damage based on player stats and item used
+  calculateDamage(player, itemType, target) {
+    // For simplicity, use fixed damage values
+    const itemDamageMap = {
+      pickaxe: 10,
+      sword: 15,
+      // Add more items and their damage values
+    };
+    return itemDamageMap[itemType] || 5; // Default damage if item not found
+  }
+
+  // Handle player death logic
+  handlePlayerDeath(playerId) {
+    const player = this.players[playerId];
+    if (player) {
+      // Reset player position and health
+      player.position = { x: 1, y: 1, z: 1 };
+      player.stats.hp = player.stats.maxHp;
+      // Optionally clear inventory or apply penalties
+      // Broadcast death event if needed
+    }
   }
 
   getWorldChunk(playerPos) {
