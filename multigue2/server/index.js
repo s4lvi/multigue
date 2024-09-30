@@ -32,7 +32,6 @@ io.on("connection", (socket) => {
         "Name is already taken. Please choose another one."
       );
     } else {
-      console.log("name not taken, creating player", playerName);
       player = worldManager.addPlayer(socket.id, playerName);
       socket.emit("initPlayer", [socket.id, worldManager.players]);
       socket.broadcast.emit("playerConnected", worldManager.players[socket.id]);
@@ -60,6 +59,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`Player disconnected: ${socket.id}`);
     io.emit("playerDisconnected", socket.id);
+    if (worldManager.players[socket.id]) {
+      io.emit("chatMessage", {
+        message:
+          "player " + worldManager.players[socket.id].name + " disconnected",
+        timestamp: Date.now(),
+      });
+    }
     worldManager.removePlayer(socket.id);
   });
 });

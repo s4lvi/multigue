@@ -42,11 +42,6 @@ class WorldManager {
     return world;
   }
   isNameTaken(name) {
-    console.log(
-      "searching for",
-      name,
-      Object.values(this.players).some((player) => player.name === name)
-    );
     return Object.values(this.players).some((player) => player.name === name);
   }
 
