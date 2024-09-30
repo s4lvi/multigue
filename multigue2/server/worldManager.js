@@ -92,26 +92,30 @@ class WorldManager {
   }
 
   movePlayer(id, direction) {
-    const player = this.players[id];
-    let newPos = { ...player.position };
+    if (player) {
+      const player = this.players[id];
+      let newPos = { ...player.position };
 
-    if (direction === "up") newPos.y -= 1;
-    if (direction === "down") newPos.y += 1;
-    if (direction === "left") newPos.x -= 1;
-    if (direction === "right") newPos.x += 1;
+      if (direction === "up") newPos.y -= 1;
+      if (direction === "down") newPos.y += 1;
+      if (direction === "left") newPos.x -= 1;
+      if (direction === "right") newPos.x += 1;
 
-    const obstacle = this.world[`${newPos.x},${newPos.y},1`];
-    if (obstacle && obstacle.type === "solid") {
-      return player.position; // Blocked by obstacle
+      const obstacle = this.world[`${newPos.x},${newPos.y},1`];
+      if (obstacle && obstacle.type === "solid") {
+        return player.position; // Blocked by obstacle
+      }
+
+      const ground = this.world[`${newPos.x},${newPos.y},0`];
+      if (!ground || ground.type !== "ground") {
+        return player.position; // No ground
+      }
+
+      player.move(newPos);
+      return player.position;
+    } else {
+      return { x: 1, y: 1, z: 1 };
     }
-
-    const ground = this.world[`${newPos.x},${newPos.y},0`];
-    if (!ground || ground.type !== "ground") {
-      return player.position; // No ground
-    }
-
-    player.move(newPos);
-    return player.position;
   }
 
   handleInteraction(id, targetPos) {
