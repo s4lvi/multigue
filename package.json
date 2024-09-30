@@ -1,5 +1,5 @@
 {
-  "name": "multi-rogue",
+  "name": "multigue",
   "version": "1.0.0",
   "description": "A 2D multiplayer roguelike game built with JavaScript, Phaser.js, and Socket.io",
   "main": "server/server.js",
