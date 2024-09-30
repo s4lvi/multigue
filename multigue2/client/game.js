@@ -1,3 +1,4 @@
+// game.js
 import { VisualEntity } from "../shared/Entities.js";
 import UIScene from "./ui.js";
 
@@ -8,14 +9,12 @@ let players = {},
   items = [],
   self,
   initialized = false;
-let keyA;
-let keyS;
-let keyD;
-let keyW;
+let keyA, keyS, keyD, keyW;
 let tileGroup, objectGroup; // Groups to handle tile rendering and objects
 
 const TILE_SIZE = 32; // Tile size in pixels
 const PLAYER_RADIUS = 1.5; // How far the player can interact
+
 class MainGameScene extends Phaser.Scene {
   constructor() {
     super({ key: "MainGameScene", active: true });
@@ -26,8 +25,11 @@ class MainGameScene extends Phaser.Scene {
 }
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: window.visualViewport.width < 800 ? window.visualViewport.width : 800,
+  height:
+    window.visualViewport.width < 800
+      ? window.visualViewport.height - 200
+      : 600,
   parent: "game-container",
   physics: {
     default: "arcade",
@@ -37,8 +39,10 @@ const config = {
   },
   scene: [MainGameScene, UIScene],
 };
+
 const game = new Phaser.Game(config);
 
+// Event Listeners for Chat (Desktop)
 document.getElementById("send-button").addEventListener("click", sendMessage);
 document
   .getElementById("chat-input")
@@ -48,6 +52,46 @@ document
       document.getElementById("chat-input").blur();
     }
   });
+
+// Event Listeners for Chat Overlay (Mobile)
+document
+  .getElementById("send-button-overlay")
+  .addEventListener("click", sendMessageOverlay);
+document
+  .getElementById("chat-input-overlay")
+  .addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      sendMessageOverlay();
+      document.getElementById("chat-input-overlay").blur();
+    }
+  });
+
+// Chat Toggle Button (Mobile)
+document.getElementById("chat-toggle-button").addEventListener("click", () => {
+  document.getElementById("chat-overlay").style.display = "flex";
+});
+
+// Close Chat Overlay Button (Mobile)
+document.getElementById("close-chat-overlay").addEventListener("click", () => {
+  document.getElementById("chat-overlay").style.display = "none";
+});
+
+// Movement Controls (Mobile)
+const moveButtons = document.querySelectorAll(".move-button");
+moveButtons.forEach((button) => {
+  button.addEventListener("touchstart", (e) => {
+    const direction = button.getAttribute("data-direction");
+    socket.emit("moveRequest", direction);
+    e.preventDefault();
+  });
+  button.addEventListener("mousedown", (e) => {
+    // For desktop testing
+    const direction = button.getAttribute("data-direction");
+    socket.emit("moveRequest", direction);
+    e.preventDefault();
+  });
+});
+
 document.getElementById("connect-button").addEventListener("click", () => {
   const playerName = document.getElementById("player-name-input").value.trim();
   if (playerName) {
@@ -63,22 +107,52 @@ function sendMessage() {
   }
 }
 
-socket.on("chatMessage", (data) => {
-  const chatMessages = document.getElementById("chat-container");
-  const newMessage = document.createElement("div");
-
-  if (data.player) {
-    newMessage.textContent = `[${new Date(
-      data.timestamp
-    ).toLocaleTimeString()}] ${data.player}: ${data.message}`;
-  } else {
-    newMessage.textContent = `[${new Date(
-      data.timestamp
-    ).toLocaleTimeString()}] ${data.message}`;
-    newMessage.style.color = "#aaa";
+function sendMessageOverlay() {
+  const message = document.getElementById("chat-input-overlay").value.trim();
+  if (message !== "") {
+    socket.emit("chatMessage", message);
+    document.getElementById("chat-input-overlay").value = "";
   }
-  chatMessages.appendChild(newMessage);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+socket.on("chatMessage", (data) => {
+  if (window.innerWidth > 768) {
+    // Desktop Chat
+    const chatMessages = document.getElementById("chat-container");
+    const newMessage = document.createElement("div");
+
+    if (data.player) {
+      newMessage.textContent = `[${new Date(
+        data.timestamp
+      ).toLocaleTimeString()}] ${data.player}: ${data.message}`;
+    } else {
+      newMessage.textContent = `[${new Date(
+        data.timestamp
+      ).toLocaleTimeString()}] ${data.message}`;
+      newMessage.style.color = "#aaa";
+    }
+    chatMessages.appendChild(newMessage);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } else {
+    // Mobile Chat Overlay
+    const chatMessagesOverlay = document.getElementById(
+      "chat-messages-overlay"
+    );
+    const newMessage = document.createElement("div");
+
+    if (data.player) {
+      newMessage.textContent = `[${new Date(
+        data.timestamp
+      ).toLocaleTimeString()}] ${data.player}: ${data.message}`;
+    } else {
+      newMessage.textContent = `[${new Date(
+        data.timestamp
+      ).toLocaleTimeString()}] ${data.message}`;
+      newMessage.style.color = "#aaa";
+    }
+    chatMessagesOverlay.appendChild(newMessage);
+    chatMessagesOverlay.scrollTop = chatMessagesOverlay.scrollHeight;
+  }
 });
 
 socket.on("nameError", (errorMsg) => {
@@ -134,7 +208,14 @@ function create() {
 
   socket.on("initPlayer", (player) => {
     document.getElementById("main-menu").style.display = "none";
-    document.getElementById("in-game").style.display = "block";
+    if (window.visualViewport.width < 800) {
+      document.getElementById("in-game").style.display = "flex";
+    } else {
+      document.getElementById("in-game").style.display = "block";
+      document.getElementById("movement-controls").style.display = "none";
+      document.getElementById("chat-overlay").style.display = "none";
+      document.getElementById("chat-toggle-button").style.display = "none";
+    }
     console.log("initPlayer", player);
     self = player[0];
     players = player[1];
@@ -216,7 +297,8 @@ function create() {
 function update(time, delta) {
   this.frameTime += delta;
   const chatInputFocused =
-    document.getElementById("chat-input") === document.activeElement;
+    document.getElementById("chat-input") === document.activeElement ||
+    document.getElementById("chat-input-overlay") === document.activeElement;
 
   if (
     initialized &&
@@ -226,17 +308,20 @@ function update(time, delta) {
   ) {
     this.frameTime = 0;
 
-    if (keyA.isDown) {
-      socket.emit("moveRequest", "left");
-    }
-    if (keyD.isDown) {
-      socket.emit("moveRequest", "right");
-    }
-    if (keyW.isDown) {
-      socket.emit("moveRequest", "up");
-    }
-    if (keyS.isDown) {
-      socket.emit("moveRequest", "down");
+    // Desktop Controls
+    if (window.innerWidth > 768) {
+      if (keyA.isDown) {
+        socket.emit("moveRequest", "left");
+      }
+      if (keyD.isDown) {
+        socket.emit("moveRequest", "right");
+      }
+      if (keyW.isDown) {
+        socket.emit("moveRequest", "up");
+      }
+      if (keyS.isDown) {
+        socket.emit("moveRequest", "down");
+      }
     }
 
     // Handle mouse cursor movement and highlight
@@ -286,6 +371,8 @@ function update(time, delta) {
           console.log(result);
           this.events.emit("updateStats", { hp: result.hp });
           this.events.emit("updateInventory", result.inventory);
+        } else if (result.type === "attack") {
+          // Handle attack result if necessary
         }
       });
     }

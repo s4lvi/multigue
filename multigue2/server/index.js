@@ -88,14 +88,8 @@ io.on("connection", (socket) => {
         message: result.message,
         timestamp: Date.now(),
       });
-      // io.emit("entityUpdate", {
-      //   type: "player",
-      //   target: result.target,
-      //   stat: "hp",
-      //   value: -5,
-      // });
     } else {
-      io.emit("interactionResult", result);
+      socket.emit("interactionResult", result);
       io.emit("worldData", worldManager.getWorldChunk(socket.player.position));
     }
   });

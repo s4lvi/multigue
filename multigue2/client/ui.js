@@ -1,4 +1,4 @@
-// uiScene.js
+// ui.js
 export default class UIScene extends Phaser.Scene {
   constructor() {
     super({ key: "UIScene", active: true });
@@ -20,53 +20,27 @@ export default class UIScene extends Phaser.Scene {
 
     this.healthBarFill = this.add.graphics();
     this.healthBarFill.setScrollFactor(0);
-
+    this.invStartX = window.visualViewport.width < 800 ? 16 : 240;
+    this.invStartY = window.visualViewport.width < 800 ? 16 : 584;
+    this.healthBarY = window.visualViewport.width < 800 ? 16 : -20;
     this.updateHealthBar(100);
     this.inventoryBackground = [];
     for (let i = 0; i < 10; i++) {
-      const icon = this.add.sprite(240 + i * 32, 584, "inventorySlot");
+      const icon = this.add.sprite(
+        this.invStartX + i * 32,
+        this.invStartY,
+        "inventorySlot"
+      );
       this.inventoryBackground.push(icon);
     }
-    // Modal
-    this.modalContainer = this.add.container(400, 300);
-    this.modalContainer.setVisible(false);
 
-    const modalBackground = this.add.graphics();
-    modalBackground.fillStyle(0x222222, 0.8);
-    modalBackground.fillRect(-150, -200, 300, 400);
-    this.modalContainer.add(modalBackground);
-
-    const closeButton = this.add.text(130, -190, "X", {
-      fontSize: "20px",
-      fill: "#fff",
-    });
-    closeButton.setInteractive();
-    closeButton.on("pointerdown", () => {
-      this.hideModal();
-    });
-    this.modalContainer.add(closeButton);
-
-    this.modalContent = this.add.text(-140, -170, "", {
-      fontSize: "16px",
-      fill: "#fff",
-      wordWrap: { width: 280 },
-    });
-    this.modalContainer.add(this.modalContent);
-
-    this.input.on("pointerdown", (pointer) => {
-      if (
-        this.modalContainer.visible &&
-        !this.modalContainer.getBounds().contains(pointer.x, pointer.y)
-      ) {
-        this.hideModal();
-      }
-    });
-
-    // Event listeners
-    this.events.on("showInventoryModal", this.showInventoryModal, this);
     this.inventoryIcons = [];
     for (let i = 0; i < 10; i++) {
-      const icon = this.add.sprite(240 + i * 32, 584, "emptySlot");
+      const icon = this.add.sprite(
+        this.invStartX + i * 32,
+        this.invStartY,
+        "emptySlot"
+      );
       icon.setScrollFactor(0);
       icon.setInteractive();
       icon.on("pointerdown", () => {
@@ -79,7 +53,12 @@ export default class UIScene extends Phaser.Scene {
     // Selection indicator
     this.selectionRectangle = this.add.graphics();
     this.selectionRectangle.lineStyle(2, 0xffff00, 1);
-    this.selectionRectangle.strokeRect(240 - 16, 584 - 16, 32, 32);
+    this.selectionRectangle.strokeRect(
+      this.invStartX - 16,
+      this.invStartY - 16,
+      32,
+      32
+    );
     this.selectionRectangle.setScrollFactor(0);
 
     // Event listeners
@@ -93,7 +72,12 @@ export default class UIScene extends Phaser.Scene {
     this.healthBarFill.clear();
     this.healthBarFill.fillStyle(0xff0000, 1);
     const healthWidth = (currentHealth / 100) * 320;
-    this.healthBarFill.fillRect(224, 564, healthWidth, 4);
+    this.healthBarFill.fillRect(
+      this.invStartX - 16,
+      this.invStartY + this.healthBarY,
+      healthWidth,
+      4
+    );
   }
 
   updateInventory(inventoryItems) {
@@ -113,8 +97,8 @@ export default class UIScene extends Phaser.Scene {
   }
 
   updateInventorySelection() {
-    const x = 240 + this.selectedItemIndex * 32 - 16;
-    const y = 584 - 16;
+    const x = this.invStartX + this.selectedItemIndex * 32 - 16;
+    const y = this.invStartY - 16;
     this.selectionRectangle.clear();
     this.selectionRectangle.lineStyle(2, 0xffff00, 1);
     this.selectionRectangle.strokeRect(x, y, 32, 32);
