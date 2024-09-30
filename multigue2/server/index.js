@@ -74,20 +74,26 @@ io.on("connection", (socket) => {
   });
 
   // Handle player interaction requests
-  socket.on("interactRequest", (targetPos) => {
+  socket.on("interactRequest", (interactionRequest) => {
+    console.log(interactionRequest);
     if (!socket.player) return; // Ensure player is initialized
-    const result = worldManager.handleInteraction(socket.id, targetPos);
+    const result = worldManager.handleInteraction(
+      socket.id,
+      interactionRequest.targetPos,
+      interactionRequest.item
+    );
+    console.log(result);
     if (result.type === "attack") {
       io.emit("chatMessage", {
         message: result.message,
         timestamp: Date.now(),
       });
-      io.emit("entityUpdate", {
-        type: "player",
-        target: result.target,
-        stat: "hp",
-        value: -5,
-      });
+      // io.emit("entityUpdate", {
+      //   type: "player",
+      //   target: result.target,
+      //   stat: "hp",
+      //   value: -5,
+      // });
     } else {
       io.emit("interactionResult", result);
       io.emit("worldData", worldManager.getWorldChunk(socket.player.position));

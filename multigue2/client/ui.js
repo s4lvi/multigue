@@ -6,6 +6,10 @@ export default class UIScene extends Phaser.Scene {
 
   preload() {
     this.load.image("inventorySlot", "assets/inventorySlot.png");
+    this.load.image("emptySlot", "assets/inventorySlot.png");
+    this.load.image("Pickaxe", "assets/war_axe1.png");
+    this.load.image("Sword", "assets/long_sword1.png");
+    this.load.image("Health Potion", "assets/health_potion.png");
   }
   create() {
     // Health bar
@@ -18,15 +22,11 @@ export default class UIScene extends Phaser.Scene {
     this.healthBarFill.setScrollFactor(0);
 
     this.updateHealthBar(100);
-
-    // Inventory bar
-    this.inventoryIcons = [];
+    this.inventoryBackground = [];
     for (let i = 0; i < 10; i++) {
       const icon = this.add.sprite(240 + i * 32, 584, "inventorySlot");
-      icon.setScrollFactor(0);
-      this.inventoryIcons.push(icon);
+      this.inventoryBackground.push(icon);
     }
-
     // Modal
     this.modalContainer = this.add.container(400, 300);
     this.modalContainer.setVisible(false);
@@ -63,8 +63,29 @@ export default class UIScene extends Phaser.Scene {
     });
 
     // Event listeners
+    this.events.on("showInventoryModal", this.showInventoryModal, this);
+    this.inventoryIcons = [];
+    for (let i = 0; i < 10; i++) {
+      const icon = this.add.sprite(240 + i * 32, 584, "emptySlot");
+      icon.setScrollFactor(0);
+      icon.setInteractive();
+      icon.on("pointerdown", () => {
+        this.selectedItemIndex = i;
+        this.updateInventorySelection();
+      });
+      this.inventoryIcons.push(icon);
+    }
+
+    // Selection indicator
+    this.selectionRectangle = this.add.graphics();
+    this.selectionRectangle.lineStyle(2, 0xffff00, 1);
+    this.selectionRectangle.strokeRect(240 - 16, 584 - 16, 32, 32);
+    this.selectionRectangle.setScrollFactor(0);
+
+    // Event listeners
     const gameScene = this.scene.get("MainGameScene");
     gameScene.events.on("updateStats", this.updateStats, this);
+    gameScene.events.on("updateInventory", this.updateInventory, this);
     this.events.on("showInventoryModal", this.showInventoryModal, this);
   }
 
@@ -78,16 +99,25 @@ export default class UIScene extends Phaser.Scene {
   updateInventory(inventoryItems) {
     for (let i = 0; i < this.inventoryIcons.length; i++) {
       if (inventoryItems[i]) {
-        this.inventoryIcons[i].setTexture(inventoryItems[i].texture);
+        const textureKey = inventoryItems[i].name;
+        this.inventoryIcons[i].setTexture(textureKey);
       } else {
         this.inventoryIcons[i].setTexture("emptySlot");
       }
     }
+    this.updateInventorySelection();
   }
 
   updateStats(playerStats) {
-    this.updateHealthBar(playerStats.health);
-    //this.updateInventory(playerStats.inventory);
+    this.updateHealthBar(playerStats.hp);
+  }
+
+  updateInventorySelection() {
+    const x = 240 + this.selectedItemIndex * 32 - 16;
+    const y = 584 - 16;
+    this.selectionRectangle.clear();
+    this.selectionRectangle.lineStyle(2, 0xffff00, 1);
+    this.selectionRectangle.strokeRect(x, y, 32, 32);
   }
 
   showInventoryModal(inventoryItems) {

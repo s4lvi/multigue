@@ -99,10 +99,6 @@ function preload() {
 
   // Load player, NPC, and item assets
   this.load.image("player", "assets/player.png");
-  this.load.image("slime", "assets/kobold.png");
-  this.load.image("villager", "assets/player.png");
-  this.load.image("sword", "assets/item.png");
-  this.load.image("pickaxe", "assets/item.png");
 
   // Load cursor highlight
   this.load.image("highlight", "assets/cursor.png");
@@ -111,6 +107,7 @@ function preload() {
 }
 
 function create() {
+  this.uiScene = this.scene.get("UIScene");
   keyA = this.input.keyboard.addKey(
     Phaser.Input.Keyboard.KeyCodes.A,
     false,
@@ -151,12 +148,13 @@ function create() {
     }
     console.log("players at init", players);
     this.cameras.main.startFollow(players[self].container);
+    // Add cursor highlight, initially hidden
+    highlightCursor = this.add.sprite(0, 0, "highlight").setVisible(false);
+    highlightCursor.setDepth(15); // Cursor should always be on top
     initialized = true;
+    this.events.emit("updateInventory", players[self].contents.inventory);
+    this.events.emit("updateStats", players[self].stats);
   });
-
-  // Add cursor highlight, initially hidden
-  highlightCursor = this.add.sprite(0, 0, "highlight").setVisible(false);
-  highlightCursor.setDepth(15); // Cursor should always be on top
 
   // Handle world data from the server
   socket.on("worldData", (worldChunk) => {
@@ -202,6 +200,16 @@ function create() {
         this.events.emit("updateStats", { health: players[self].stats.hp });
       }
     }
+  });
+
+  socket.on("updateInventory", (inventory) => {
+    players[self].contents.inventory = inventory;
+    this.events.emit("updateInventory", inventory);
+  });
+
+  socket.on("updateStats", (stats) => {
+    players[self].stats = stats;
+    this.events.emit("updateStats", stats);
   });
 }
 
@@ -254,10 +262,31 @@ function update(time, delta) {
 
     // Emit interaction request when mouse is clicked
     if (this.input.activePointer.isDown && highlightCursor.visible) {
+      const selectedItem =
+        players[self].contents.inventory[this.uiScene.selectedItemIndex];
+      let itemType = "hand";
+      if (selectedItem) {
+        itemType = selectedItem.name.toLowerCase();
+      }
       socket.emit("interactRequest", {
-        x: tileX,
-        y: tileY,
-        z: players[self].z,
+        targetPos: { x: tileX, y: tileY, z: players[self].position.z },
+        item: itemType,
+      });
+
+      socket.on("interactionResult", (result) => {
+        console.log(result);
+        if (result.type === "pickup") {
+          // Update inventory
+          players[self].contents.inventory = result.inventory;
+          this.events.emit("updateInventory", result.inventory);
+        } else if (result.type === "consume") {
+          // Update stats and inventory
+          players[self].stats.hp = result.hp;
+          players[self].contents.inventory = result.inventory;
+          console.log(result);
+          this.events.emit("updateStats", { hp: result.hp });
+          this.events.emit("updateInventory", result.inventory);
+        }
       });
     }
   }

@@ -1,7 +1,7 @@
 // worldManager.js
 
 import Perlin from "perlin-noise";
-import { Entity } from "../shared/Entities.js";
+import { Entity, Item } from "../shared/Entities.js";
 import { PLAYER_RADIUS } from "../shared/constants.js";
 
 class WorldManager {
@@ -12,7 +12,23 @@ class WorldManager {
     this.world = this.generateWorld();
   }
 
-  // Generate the world with improved terrain and obstacles
+  // Define items as instances of Item
+  ITEMS = {
+    pickaxe: new Item("item_pickaxe", "Pickaxe", null, "tool", {
+      actionType: "hit",
+    }),
+    sword: new Item("item_sword", "Sword", null, "weapon", {
+      actionType: "hit",
+    }),
+    healthPotion: new Item(
+      "item_healthPotion",
+      "Health Potion",
+      null,
+      "consumable",
+      { actionType: "consume", effect: "heal", amount: 50 }
+    ),
+  };
+
   generateWorld() {
     const world = {};
     const noise = Perlin.generatePerlinNoise(
@@ -56,6 +72,20 @@ class WorldManager {
             world[`${x},${y},1`] = { material: "tree", type: "solid" };
           } else if (obstacleChance < 0.075) {
             world[`${x},${y},1`] = { material: "rock", type: "solid" };
+          } else if (obstacleChance < 0.077) {
+            // Scatter health potions rarely
+            const healthPotion = new Item(
+              `item_healthPotion_${x}_${y}`,
+              "Health Potion",
+              { x: x, y: y, z: 1 },
+              "consumable",
+              { actionType: "consume", effect: "heal", amount: 50 }
+            );
+            world[`${x},${y},1`] = {
+              material: healthPotion.name,
+              type: "item",
+              item: healthPotion,
+            };
           } else {
             world[`${x},${y},1`] = { material: "none", type: "empty" };
           }
@@ -78,12 +108,26 @@ class WorldManager {
   }
 
   addPlayer(id, name) {
+    const playerInventory = [
+      new Item(`item_pickaxe_${id}`, "Pickaxe", null, "tool", {
+        actionType: "hit",
+      }),
+      new Item(`item_sword_${id}`, "Sword", null, "weapon", {
+        actionType: "hit",
+      }),
+      new Item(`item_healthPotion_${id}`, "Health Potion", null, "consumable", {
+        actionType: "consume",
+        effect: "heal",
+        amount: 50,
+      }),
+    ];
+
     this.players[id] = new Entity(
       id,
       name,
       { x: 1, y: 1, z: 1 },
-      { hp: 100, maxHp: 100 },
-      { inventory: [] } // Initialize inventory
+      { hp: 50, maxHp: 100 },
+      { inventory: playerInventory }
     );
     return this.players[id];
   }
@@ -119,7 +163,7 @@ class WorldManager {
     }
   }
 
-  // Refactored handleInteraction method
+  // Handle interactions with items and entities
   handleInteraction(id, targetPos, itemType) {
     const player = this.players[id];
     if (player) {
@@ -129,7 +173,15 @@ class WorldManager {
       );
 
       if (distance <= PLAYER_RADIUS) {
-        const actionType = this.getActionType(itemType);
+        console.log(itemType);
+        // Check if player has the item in inventory
+        const item = this.getItemFromInventory(player, itemType);
+        if (!item && itemType !== "hand") {
+          return { success: false, message: "You don't have that item!" };
+        }
+
+        const actionType =
+          itemType === "hand" ? "use" : item.properties.actionType;
         const targetInfo = this.getTargetInfo(id, targetPos);
 
         return this.handleAction(
@@ -137,21 +189,22 @@ class WorldManager {
           actionType,
           targetInfo,
           targetPos,
-          itemType
+          item
         );
+      } else {
+        return { success: false, message: "Target is out of reach" };
       }
     }
-    return { success: false, message: "Out of reach or invalid action" };
+    return { success: false, message: "Invalid player" };
   }
 
-  // Determine the action type based on the item used
-  getActionType(itemType) {
-    const itemActionMap = {
-      hand: "use",
-      pickaxe: "hit",
-      // Add more items and their corresponding action types
-    };
-    return itemActionMap[itemType] || "use"; // Default to 'use' if unknown item
+  // Helper method to get item from player's inventory
+  getItemFromInventory(player, itemType) {
+    return player.contents.inventory.find(
+      (invItem) =>
+        invItem.name.toLowerCase() === itemType.toLowerCase() &&
+        invItem instanceof Item
+    );
   }
 
   // Get information about the target being interacted with
@@ -168,29 +221,31 @@ class WorldManager {
     if (targetPlayer) {
       return { type: "player", target: targetPlayer };
     } else if (targetBlock && targetBlock.type !== "empty") {
-      return { type: "block", target: targetBlock };
+      return { type: targetBlock.type, target: targetBlock };
     } else {
       return { type: "none", target: null };
     }
   }
 
   // Handle the action based on action type and target type
-  handleAction(player, actionType, targetInfo, targetPos, itemType) {
+  handleAction(player, actionType, targetInfo, targetPos, item) {
     const { type: targetType, target } = targetInfo;
 
     if (actionType === "use") {
       // Implement 'use' interactions
-      if (targetType === "block" && target.material === "item") {
+      if (targetType === "item") {
         // Pickup item
-        player.inventory.push(target.item);
+        player.contents.inventory.push(target.item);
         delete this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`];
         return {
           success: true,
           type: "pickup",
           message: `${player.name} picked up ${target.item.name}`,
+          item: target.item,
+          inventory: player.contents.inventory,
         };
       } else if (targetType === "player") {
-        // Implement interaction with other players (e.g., trade)
+        // Interact with other players
         return {
           success: true,
           type: "use",
@@ -201,17 +256,29 @@ class WorldManager {
       }
     } else if (actionType === "hit") {
       // Implement 'hit' interactions
-      if (targetType === "block" && target.type === "solid") {
+      if (targetType === "solid") {
         // Mine the block
-        player.inventory.push({ type: "block", material: target.material });
+        const minedItem = new Item(
+          `block_${target.material}_${targetPos.x}_${targetPos.y}`,
+          target.material,
+          null,
+          "block",
+          {}
+        );
+        player.contents.inventory.push(minedItem);
         this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`] = {
           material: "none",
           type: "empty",
         };
-        return { success: true, type: "mine", message: "Block mined!" };
+        return {
+          success: true,
+          type: "mine",
+          message: "Block mined!",
+          block: target,
+        };
       } else if (targetType === "player") {
         // Attack another player
-        const damage = this.calculateDamage(player, itemType, target);
+        const damage = this.calculateDamage(player, item, target);
         target.stats.hp -= damage;
         const isDefeated = target.stats.hp <= 0;
         if (isDefeated) {
@@ -231,20 +298,51 @@ class WorldManager {
       } else {
         return { success: false, message: "Nothing to interact with" };
       }
+    } else if (actionType === "consume") {
+      // Implement 'consume' interactions
+      if (item.itemType === "consumable" && item.properties.effect === "heal") {
+        // Heal the player
+        const healAmount = item.properties.amount;
+        player.stats.hp = Math.min(
+          player.stats.hp + healAmount,
+          player.stats.maxHp
+        );
+        // Remove the item from inventory
+        this.removeItemFromInventory(player, item);
+        return {
+          success: true,
+          type: "consume",
+          message: `${player.name} used a ${item.name} and healed ${healAmount} HP!`,
+          hp: player.stats.hp,
+          inventory: player.contents.inventory,
+        };
+      } else {
+        return { success: false, message: "Cannot consume this item" };
+      }
     } else {
       return { success: false, message: "Invalid action type" };
     }
   }
 
+  // Helper method to remove an item from player's inventory
+  removeItemFromInventory(player, item) {
+    const index = player.contents.inventory.findIndex(
+      (invItem) => invItem.id === item.id
+    );
+    if (index !== -1) {
+      player.contents.inventory.splice(index, 1);
+    }
+  }
+
   // Calculate damage based on player stats and item used
-  calculateDamage(player, itemType, target) {
-    // For simplicity, use fixed damage values
+  calculateDamage(player, item, target) {
     const itemDamageMap = {
       pickaxe: 10,
       sword: 15,
-      // Add more items and their damage values
     };
-    return itemDamageMap[itemType] || 5; // Default damage if item not found
+    const baseDamage = itemDamageMap[item.name.toLowerCase()] || 5; // Default damage
+    // Incorporate player stats or item properties if needed
+    return baseDamage;
   }
 
   // Handle player death logic
@@ -260,12 +358,12 @@ class WorldManager {
   }
 
   getWorldChunk(playerPos) {
-    // Return chunk data around the player's current position
     const chunk = {};
     for (let x = playerPos.x - 64; x < playerPos.x + 64; x++) {
       for (let y = playerPos.y - 64; y < playerPos.y + 64; y++) {
         for (let z = 0; z < this.layers; z++) {
-          chunk[`${x},${y},${z}`] = this.world[`${x},${y},${z}`];
+          const key = `${x},${y},${z}`;
+          chunk[key] = this.world[key];
         }
       }
     }
