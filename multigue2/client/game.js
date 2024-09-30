@@ -41,6 +41,7 @@ document
   .addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       sendMessage();
+      document.getElementById("chat-input").blur();
     }
   });
 document.getElementById("connect-button").addEventListener("click", () => {
@@ -102,10 +103,26 @@ function preload() {
 }
 
 function create() {
-  keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-  keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-  keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-  keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+  keyA = this.input.keyboard.addKey(
+    Phaser.Input.Keyboard.KeyCodes.A,
+    false,
+    true
+  );
+  keyS = this.input.keyboard.addKey(
+    Phaser.Input.Keyboard.KeyCodes.S,
+    false,
+    true
+  );
+  keyD = this.input.keyboard.addKey(
+    Phaser.Input.Keyboard.KeyCodes.D,
+    false,
+    true
+  );
+  keyW = this.input.keyboard.addKey(
+    Phaser.Input.Keyboard.KeyCodes.W,
+    false,
+    true
+  );
   // Create groups for organizing layers
   tileGroup = this.add.group(); // Group for tiles (ground)
   objectGroup = this.add.group(); // Group for NPCs, items, player, cursor
@@ -171,8 +188,15 @@ function create() {
 
 function update(time, delta) {
   this.frameTime += delta;
-  // Handle player movement based on cursor keys
-  if (this.frameTime > this.updateInterval && initialized) {
+  const chatInputFocused =
+    document.getElementById("chat-input") === document.activeElement;
+
+  if (
+    initialized &&
+    !chatInputFocused &&
+    this.frameTime > this.updateInterval &&
+    initialized
+  ) {
     this.frameTime = 0;
 
     if (keyA.isDown) {
@@ -195,8 +219,8 @@ function update(time, delta) {
 
     // Update cursor highlight position and visibility if it's within reach
     const distance = Phaser.Math.Distance.Between(
-      players[self].sprite.x / TILE_SIZE,
-      players[self].sprite.y / TILE_SIZE,
+      players[self].container.x / TILE_SIZE,
+      players[self].container.y / TILE_SIZE,
       tileX,
       tileY
     );
