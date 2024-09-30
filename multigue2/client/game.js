@@ -29,7 +29,7 @@ const config = {
     window.visualViewport.width < 800 ? window.visualViewport.width - 4 : 800,
   height:
     window.visualViewport.width < 800
-      ? window.visualViewport.height - 300
+      ? window.visualViewport.height - 200
       : 600,
 
   parent: "game-container",
