@@ -41,6 +41,10 @@ io.on("connection", (socket) => {
         message: "player " + playerName + " connected",
         timestamp: Date.now(),
       });
+      socket.emit("chatMessage", {
+        message: "welcome to MULTIGUE",
+        timestamp: Date.now(),
+      });
     }
   });
 
