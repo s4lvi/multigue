@@ -1,6 +1,6 @@
-const Perlin = require("perlin-noise");
-const CONSTANTS = require("../shared/constants");
-const { Entity } = require("../shared/Entites");
+import Perlin from "perlin-noise";
+import { Entity } from "../shared/Entities.js";
+import { PLAYER_RADIUS } from "../shared/constants.js";
 
 class WorldManager {
   constructor(chunkSize, layers) {
@@ -11,7 +11,6 @@ class WorldManager {
   }
 
   // worldManager.js
-
   generateWorld() {
     const world = {};
     const noise = Perlin.generatePerlinNoise(
@@ -92,8 +91,8 @@ class WorldManager {
   }
 
   movePlayer(id, direction) {
+    const player = this.players[id];
     if (player) {
-      const player = this.players[id];
       let newPos = { ...player.position };
 
       if (direction === "up") newPos.y -= 1;
@@ -125,7 +124,7 @@ class WorldManager {
       player.position.y - targetPos.y
     );
 
-    if (distance <= CONSTANTS.PLAYER_RADIUS) {
+    if (distance <= PLAYER_RADIUS) {
       const key = `${targetPos.x},${targetPos.y},1`;
       const block = this.world[key];
       for (let p in this.players) {
@@ -164,4 +163,4 @@ class WorldManager {
   }
 }
 
-module.exports = WorldManager;
+export default WorldManager;

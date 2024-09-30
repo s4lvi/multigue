@@ -1,17 +1,20 @@
-const express = require("express");
-const http = require("http");
-const path = require("path");
-const socketIo = require("socket.io");
-const WorldManager = require("./worldManager");
-const { CHUNK_SIZE, LAYERS } = require("../shared/constants");
+import express from "express";
+import http from "http";
+import path from "path";
+import { Server } from "socket.io";
+import WorldManager from "./worldManager.js";
+import { CHUNK_SIZE, LAYERS } from "../shared/constants.js";
+import { fileURLToPath } from "url";
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-// Serve static files from the /client directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "..", "client")));
+app.use("/shared", express.static(path.join(__dirname, "..", "shared")));
 
 const worldManager = new WorldManager(CHUNK_SIZE, LAYERS);
 
@@ -25,6 +28,7 @@ io.on("connection", (socket) => {
       timestamp: Date.now(),
     });
   });
+
   socket.on("initPlayer", (playerName) => {
     if (worldManager.isNameTaken(playerName)) {
       socket.emit(

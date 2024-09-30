@@ -1,4 +1,4 @@
-import { VisualEntity } from "./Entities.js";
+import { VisualEntity } from "../shared/Entities.js";
 import UIScene from "./ui.js";
 
 const socket = io();
