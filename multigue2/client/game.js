@@ -214,8 +214,8 @@ function update(time, delta) {
 
     // Handle mouse cursor movement and highlight
     const pointer = this.input.activePointer;
-    const tileX = Math.floor(pointer.worldX / TILE_SIZE);
-    const tileY = Math.floor(pointer.worldY / TILE_SIZE);
+    const tileX = Math.floor((pointer.worldX + 16) / TILE_SIZE);
+    const tileY = Math.floor((pointer.worldY + 16) / TILE_SIZE);
 
     // Update cursor highlight position and visibility if it's within reach
     const distance = Phaser.Math.Distance.Between(
