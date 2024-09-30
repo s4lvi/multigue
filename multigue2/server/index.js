@@ -56,8 +56,21 @@ io.on("connection", (socket) => {
 
   socket.on("interactRequest", (targetPos) => {
     const result = worldManager.handleInteraction(socket.id, targetPos);
-    io.emit("interactionResult", result);
-    io.emit("worldData", worldManager.getWorldChunk(player.position));
+    if (result.type === "attack") {
+      io.emit("chatMessage", {
+        message: result.message,
+        timestamp: Date.now(),
+      });
+      io.emit("entityUpdate", {
+        type: "player",
+        target: result.target,
+        stat: "hp",
+        value: -5,
+      });
+    } else {
+      io.emit("interactionResult", result);
+      io.emit("worldData", worldManager.getWorldChunk(player.position));
+    }
   });
 
   socket.on("disconnect", () => {

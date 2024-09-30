@@ -192,6 +192,17 @@ function create() {
     };
     players[playerId].move(newPos);
   });
+
+  socket.on("entityUpdate", (entityData) => {
+    if (entityData.type === "player") {
+      console.log(entityData);
+      players[entityData.target].stats[entityData.stat] += entityData.value;
+      if (entityData.target === self) {
+        console.log(players[entityData.target].stats);
+        this.events.emit("updateStats", { health: players[self].stats.hp });
+      }
+    }
+  });
 }
 
 function update(time, delta) {

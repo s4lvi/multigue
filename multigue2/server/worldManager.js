@@ -77,7 +77,13 @@ class WorldManager {
   }
 
   addPlayer(id, name) {
-    this.players[id] = new Entity(id, name, { x: 1, y: 1, z: 1 }, {}, {});
+    this.players[id] = new Entity(
+      id,
+      name,
+      { x: 1, y: 1, z: 1 },
+      { hp: 100, maxHp: 100 },
+      {}
+    );
     return this.players[id];
   }
 
@@ -118,6 +124,19 @@ class WorldManager {
     if (distance <= CONSTANTS.PLAYER_RADIUS) {
       const key = `${targetPos.x},${targetPos.y},1`;
       const block = this.world[key];
+      for (let p in this.players) {
+        if (
+          this.players[p].position.x === targetPos.x &&
+          this.players[p].position.y === targetPos.y
+        ) {
+          return {
+            success: true,
+            type: "attack",
+            message: `${player.name} attacked ${this.players[p].name}!`,
+            target: p,
+          };
+        }
+      }
 
       if (block && block.type === "solid") {
         this.world[key] = { material: "none", type: "empty" };

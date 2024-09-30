@@ -87,7 +87,7 @@ export default class UIScene extends Phaser.Scene {
 
   updateStats(playerStats) {
     this.updateHealthBar(playerStats.health);
-    this.updateInventory(playerStats.inventory);
+    //this.updateInventory(playerStats.inventory);
   }
 
   showInventoryModal(inventoryItems) {
