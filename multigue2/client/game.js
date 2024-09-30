@@ -25,7 +25,8 @@ class MainGameScene extends Phaser.Scene {
 }
 const config = {
   type: Phaser.AUTO,
-  width: window.visualViewport.width < 800 ? window.visualViewport.width : 800,
+  width:
+    window.visualViewport.width < 800 ? window.visualViewport.width - 4 : 800,
   height:
     window.visualViewport.width < 800
       ? window.visualViewport.height - 300
