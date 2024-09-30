@@ -34,10 +34,12 @@ class WorldManager {
           groundMaterial = "water";
         } else if (noiseValue < 0.45) {
           groundMaterial = "sand";
-        } else if (noiseValue < 0.6) {
+        } else if (noiseValue < 0.55) {
           groundMaterial = "dirt";
-        } else {
+        } else if (noiseValue < 0.8) {
           groundMaterial = "grass";
+        } else {
+          groundMaterial = "gravel";
         }
 
         // Ground layer (z = 0)
@@ -47,15 +49,17 @@ class WorldManager {
         };
 
         // Obstacles layer (z = 1)
-        if (groundMaterial !== "water") {
+        if (groundMaterial !== "water" && groundMaterial !== "gravel") {
           let obstacleChance = Math.random();
-          if (obstacleChance < 0.1) {
-            world[`${x},${y},1`] = { material: "rock", type: "solid" };
-          } else if (obstacleChance < 0.2) {
+          if (obstacleChance < 0.05) {
             world[`${x},${y},1`] = { material: "tree", type: "solid" };
+          } else if (obstacleChance < 0.075) {
+            world[`${x},${y},1`] = { material: "rock", type: "solid" };
           } else {
             world[`${x},${y},1`] = { material: "none", type: "empty" };
           }
+        } else if (groundMaterial === "gravel") {
+          world[`${x},${y},1`] = { material: "stone", type: "solid" };
         } else {
           // No obstacles on water tiles
           world[`${x},${y},1`] = { material: "none", type: "empty" };

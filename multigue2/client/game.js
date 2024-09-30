@@ -91,6 +91,7 @@ function preload() {
   this.load.image("tree", "assets/tree.png");
   this.load.image("water", "assets/water.png");
   this.load.image("rock", "assets/rock.png");
+  this.load.image("gravel", "assets/gravel.png");
 
   // Load player, NPC, and item assets
   this.load.image("player", "assets/player.png");
