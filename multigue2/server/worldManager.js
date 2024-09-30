@@ -10,37 +10,64 @@ class WorldManager {
     this.world = this.generateWorld();
   }
 
+  // worldManager.js
+
   generateWorld() {
     const world = {};
     const noise = Perlin.generatePerlinNoise(
       this.chunkSize.width,
-      this.chunkSize.height
+      this.chunkSize.height,
+      {
+        octaveCount: 4,
+        amplitude: 0.1,
+        persistence: 0.5,
+      }
     );
 
     for (let x = 0; x < this.chunkSize.width; x++) {
       for (let y = 0; y < this.chunkSize.height; y++) {
-        let height = Math.floor(
-          noise[x * this.chunkSize.height + y] * this.layers
-        );
+        const noiseValue = noise[x * this.chunkSize.height + y];
 
-        for (let z = 0; z < this.layers; z++) {
-          if (z < height) {
-            // Different tile types based on height (e.g., stone, dirt, grass)
-            if (z < height - 2) {
-              world[`${x},${y},${z}`] = { material: "stone", type: "solid" };
-            } else if (z === height - 1) {
-              world[`${x},${y},${z}`] = { material: "dirt", type: "solid" };
-            } else {
-              world[`${x},${y},${z}`] = { material: "grass", type: "solid" };
-            }
-          } else {
-            world[`${x},${y},${z}`] = { material: "grass", type: "solid" };
-          }
+        // Determine ground material based on noise value
+        let groundMaterial;
+        if (noiseValue < 0.3) {
+          groundMaterial = "water";
+        } else if (noiseValue < 0.45) {
+          groundMaterial = "sand";
+        } else if (noiseValue < 0.6) {
+          groundMaterial = "dirt";
+        } else {
+          groundMaterial = "grass";
         }
+
+        // Ground layer (z = 0)
+        world[`${x},${y},0`] = {
+          material: groundMaterial,
+          type: groundMaterial === "water" ? "water" : "ground",
+        };
+
+        // Obstacles layer (z = 1)
+        if (groundMaterial !== "water") {
+          let obstacleChance = Math.random();
+          if (obstacleChance < 0.1) {
+            world[`${x},${y},1`] = { material: "rock", type: "solid" };
+          } else if (obstacleChance < 0.2) {
+            world[`${x},${y},1`] = { material: "tree", type: "solid" };
+          } else {
+            world[`${x},${y},1`] = { material: "none", type: "empty" };
+          }
+        } else {
+          // No obstacles on water tiles
+          world[`${x},${y},1`] = { material: "none", type: "empty" };
+        }
+
+        // Unused layer (z = 2)
+        world[`${x},${y},2`] = { material: "none", type: "empty" };
       }
     }
     return world;
   }
+
   isNameTaken(name) {
     return Object.values(this.players).some((player) => player.name === name);
   }
@@ -62,44 +89,38 @@ class WorldManager {
     if (direction === "down") newPos.y += 1;
     if (direction === "left") newPos.x -= 1;
     if (direction === "right") newPos.x += 1;
-    const isValidMove =
-      this.world[`${newPos.x},${newPos.y},${newPos.z}`] !== undefined &&
-      this.world[`${newPos.x},${newPos.y},${newPos.z}`].type === "solid";
-    if (isValidMove) {
-      player.move(newPos);
+
+    const obstacle = this.world[`${newPos.x},${newPos.y},1`];
+    if (obstacle && obstacle.type === "solid") {
+      return player.position; // Blocked by obstacle
     }
+
+    const ground = this.world[`${newPos.x},${newPos.y},0`];
+    if (!ground || ground.type !== "ground") {
+      return player.position; // No ground
+    }
+
+    player.move(newPos);
     return player.position;
   }
 
   handleInteraction(id, targetPos) {
-    // console.log("handling interaction", id, targetPos);
-    // const player = this.players[id];
-    // const distance = Math.hypot(
-    //   player.position.x - targetPos.x,
-    //   player.position.y - targetPos.y
-    // );
-    // if (distance <= CONSTANTS.PLAYER_RADIUS) {
-    //   // check if entity at position
-    //   console.log(
-    //     "entity at",
-    //     `${targetPos.x},${targetPos.y},${targetPos.z}`,
-    //     this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`],
-    //     this.items[`${targetPos.x},${targetPos.y},${targetPos.z}`],
-    //     this.npcs[`${targetPos.x},${targetPos.y},${targetPos.z}`]
-    //   );
-    //   // otherwise block
-    //   if (
-    //     this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`].type ===
-    //     "solid"
-    //   ) {
-    //     this.world[`${targetPos.x},${targetPos.y},${targetPos.z}`] = {
-    //       material: "none",
-    //       type: "empty",
-    //     };
-    //     return { success: true, message: "Block mined!" };
-    //   }
-    // }
-    // return { success: false, message: "Out of reach or invalid action" };
+    const player = this.players[id];
+    const distance = Math.hypot(
+      player.position.x - targetPos.x,
+      player.position.y - targetPos.y
+    );
+
+    if (distance <= CONSTANTS.PLAYER_RADIUS) {
+      const key = `${targetPos.x},${targetPos.y},1`;
+      const block = this.world[key];
+
+      if (block && block.type === "solid") {
+        this.world[key] = { material: "none", type: "empty" };
+        return { success: true, message: "Block mined!" };
+      }
+    }
+    return { success: false, message: "Out of reach or invalid action" };
   }
 
   getWorldChunk(playerPos) {

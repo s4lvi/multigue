@@ -38,7 +38,7 @@ export class VisualEntity extends Entity {
       [this.sprite, this.nameText]
     );
     scene.physics.add.existing(this.container);
-    this.container.setDepth(this.position.z);
+    this.container.setDepth(2);
   }
 
   remove(scene) {

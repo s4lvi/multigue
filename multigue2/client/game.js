@@ -87,7 +87,10 @@ function preload() {
   this.load.image("stone", "assets/stone.png");
   this.load.image("dirt", "assets/dirt.png");
   this.load.image("grass", "assets/grass.png");
-  this.load.image("floor", "assets/floor.png");
+  this.load.image("sand", "assets/floor.png");
+  this.load.image("tree", "assets/tree.png");
+  this.load.image("water", "assets/water.png");
+  this.load.image("rock", "assets/rock.png");
 
   // Load player, NPC, and item assets
   this.load.image("player", "assets/player.png");
@@ -245,25 +248,17 @@ function update(time, delta) {
 }
 
 function renderWorldChunk(scene, worldChunk) {
-  // Clear the tileGroup before rendering new tiles
   tileGroup.clear(true, true);
 
-  // Iterate through the world chunk data and render tiles
   Object.keys(worldChunk).forEach((key) => {
     const [x, y, z] = key.split(",").map(Number);
-    if (z === 0) {
-      const tileType = worldChunk[key].material;
+    const tileData = worldChunk[key];
+    const tileType = tileData.material;
 
-      let tileSprite;
-      if (tileType === "stone") {
-        tileGroup.add(scene.add.sprite(x * TILE_SIZE, y * TILE_SIZE, "stone"));
-      } else if (tileType === "dirt") {
-        tileGroup.add(scene.add.sprite(x * TILE_SIZE, y * TILE_SIZE, "dirt"));
-      } else if (tileType === "grass") {
-        tileGroup.add(scene.add.sprite(x * TILE_SIZE, y * TILE_SIZE, "grass"));
-      } else {
-        tileGroup.add(scene.add.sprite(x * TILE_SIZE, y * TILE_SIZE, "floor"));
-      }
+    if (tileType !== "none") {
+      let sprite = scene.add.sprite(x * TILE_SIZE, y * TILE_SIZE, tileType);
+      sprite.setDepth(z); // Set depth based on z level
+      tileGroup.add(sprite);
     }
   });
 }
