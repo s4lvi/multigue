@@ -28,8 +28,9 @@ const config = {
   width: window.visualViewport.width < 800 ? window.visualViewport.width : 800,
   height:
     window.visualViewport.width < 800
-      ? window.visualViewport.height - 200
+      ? window.visualViewport.height - 300
       : 600,
+
   parent: "game-container",
   physics: {
     default: "arcade",
