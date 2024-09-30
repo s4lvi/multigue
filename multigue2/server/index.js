@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Serve static files from the /client directory
-app.use(express.static(path.join(__dirname, "../client")));
+app.use(express.static(path.join(__dirname, "..", "client")));
 
 const worldManager = new WorldManager(CHUNK_SIZE, LAYERS);
 
