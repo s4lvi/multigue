@@ -1,4 +1,5 @@
 import { VisualEntity } from "./Entities.js";
+import UIScene from "./ui.js";
 
 const socket = io();
 let players = {},
@@ -15,7 +16,14 @@ let tileGroup, objectGroup; // Groups to handle tile rendering and objects
 
 const TILE_SIZE = 32; // Tile size in pixels
 const PLAYER_RADIUS = 1.5; // How far the player can interact
-
+class MainGameScene extends Phaser.Scene {
+  constructor() {
+    super({ key: "MainGameScene", active: true });
+  }
+  preload = preload;
+  create = create;
+  update = update;
+}
 const config = {
   type: Phaser.AUTO,
   width: 800,
@@ -27,14 +35,10 @@ const config = {
       debug: false,
     },
   },
-  scene: {
-    preload: preload,
-    create: create,
-    update: update,
-  },
+  scene: [MainGameScene, UIScene],
 };
-
 const game = new Phaser.Game(config);
+
 document.getElementById("send-button").addEventListener("click", sendMessage);
 document
   .getElementById("chat-input")
