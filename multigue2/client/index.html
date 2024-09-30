@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Multiplayer Roguelike</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <script type="module" src="game.js"></script>  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #222; /* Dark gray for better contrast */
+      color: #fff; /* White text for better readability */
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #game-container {
+      border: 1px solid #777;
+    }
+    #chat-container {
+      height: 128px;
+      background-color: #111;
+      font-family: monospace;
+      font-size: small;
+      overflow-y: scroll;
+      padding: 8px;
+    }
+    #chat-input {
+      border: 1px solid #777;
+      min-height: 32px;
+      background-color: #333;
+      font-family: monospace;
+      font-size: small;
+      width: 798px;
+      color: white;
+     } </style>
+</head>
+<body>
+  <div id="main-menu">
+    <input type="text" id="player-name-input" placeholder="Enter your name" />
+    <button id="connect-button">Connect</button>
+    <div id="name-error" style="color:red;"></div>
+  </div>
+  <div id="in-game" style="display:none">
+
+  <div id="game-container"></div>
+  <div id="chat-container"></div>
+  <input type="text" id="chat-input" />
+  <button id="send-button">Send</button>
+  </div>
+
+</body>
+</html>

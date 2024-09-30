@@ -1,0 +1,22 @@
+[
+    {
+      "id": "slime",
+      "name": "Slime",
+      "type": "hostile",
+      "health": 10,
+      "damage": 1,
+      "speed": 1,
+      "behavior": "follow_player"
+    },
+    {
+      "id": "villager",
+      "name": "Villager",
+      "type": "neutral",
+      "health": 20,
+      "damage": 0,
+      "speed": 1,
+      "behavior": "idle"
+    }
+  ]
+  
+  

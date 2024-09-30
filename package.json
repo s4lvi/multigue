@@ -4,12 +4,13 @@
   "description": "A 2D multiplayer roguelike game built with JavaScript, Phaser.js, and Socket.io",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/server.js"
+    "start": "node multigue2/server/index.js"
   },
   "author": "jsalvi",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
+    "perlin-noise": "^0.0.1",
     "socket.io": "^4.5.4"
   }
 }
