@@ -173,7 +173,6 @@ class WorldManager {
       );
 
       if (distance <= PLAYER_RADIUS) {
-        console.log(itemType);
         // Check if player has the item in inventory
         const item = this.getItemFromInventory(player, itemType);
         if (!item && itemType !== "hand") {

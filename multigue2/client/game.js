@@ -222,7 +222,6 @@ function create() {
     self = player[0];
     players = player[1];
     for (let p in players) {
-      console.log(p);
       players[p] = new VisualEntity(
         players[p],
         this,
@@ -280,7 +279,6 @@ function create() {
 
   socket.on("entityUpdate", (entityData) => {
     if (entityData.type === "player") {
-      console.log(entityData);
       players[entityData.target].stats[entityData.stat] += entityData.value;
       if (entityData.target === self) {
         console.log(players[entityData.target].stats);
@@ -401,7 +399,6 @@ function update(time, delta) {
           // Update stats and inventory
           players[self].stats.hp = result.hp;
           players[self].contents.inventory = result.inventory;
-          console.log(result);
           this.events.emit("updateStats", { hp: result.hp });
           this.events.emit("updateInventory", result.inventory);
         } else if (result.type === "attack") {

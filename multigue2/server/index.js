@@ -75,14 +75,12 @@ io.on("connection", (socket) => {
 
   // Handle player interaction requests
   socket.on("interactRequest", (interactionRequest) => {
-    console.log(interactionRequest);
     if (!socket.player) return; // Ensure player is initialized
     const result = worldManager.handleInteraction(
       socket.id,
       interactionRequest.targetPos,
       interactionRequest.item
     );
-    console.log(result);
     if (result.type === "attack") {
       io.emit("chatMessage", {
         message: result.message,
