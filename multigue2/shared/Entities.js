@@ -40,6 +40,7 @@ export class VisualEntity extends Entity {
       fill: "#fff",
     });
     this.nameText.setOrigin(0.5, 1);
+    console.log(this.sprite.position);
     this.container = scene.add.container(
       this.position.x * 32,
       this.position.y * 32,

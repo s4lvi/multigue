@@ -88,8 +88,36 @@ io.on("connection", (socket) => {
         message: result.message,
         timestamp: Date.now(),
       });
+      if (result.isDefeated) {
+        // Handle player death
+        worldManager.handlePlayerDeath(result.target);
+
+        // Retrieve the updated player data after death
+        const deadPlayer = worldManager.players[result.target];
+        if (deadPlayer) {
+          // Emit 'kill' event with updated data to the defeated player
+          io.to(result.target).emit("kill", {
+            position: deadPlayer.position,
+            inventory: deadPlayer.contents.inventory,
+            stats: deadPlayer.stats,
+          });
+
+          io.emit("updatePosition", {
+            player: deadPlayer.id,
+            position: deadPlayer.position,
+          });
+          // Emit updated world data to all clients to reflect dropped items
+          io.emit("worldData", worldManager.getWorldChunk(deadPlayer.position));
+        }
+      } else {
+        // If not defeated, just update the target player's stats
+        socket.broadcast.to(result.target).emit("updateStats", {
+          hp: worldManager.players[result.target].stats.hp,
+        });
+      }
     } else {
       socket.emit("interactionResult", result);
+      // Emit world data to the interacting player to reflect any changes
       io.emit("worldData", worldManager.getWorldChunk(socket.player.position));
     }
   });

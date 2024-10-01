@@ -126,7 +126,7 @@ class WorldManager {
       id,
       name,
       { x: 1, y: 1, z: 1 },
-      { hp: 50, maxHp: 100 },
+      { hp: 100, maxHp: 100 },
       { inventory: playerInventory }
     );
     return this.players[id];
@@ -275,6 +275,7 @@ class WorldManager {
           type: "mine",
           message: "Block mined!",
           block: target,
+          inventory: player.contents.inventory,
         };
       } else if (targetType === "player") {
         // Attack another player
@@ -349,11 +350,69 @@ class WorldManager {
   handlePlayerDeath(playerId) {
     const player = this.players[playerId];
     if (player) {
+      // Store the death location
+      const deathPos = { ...player.position };
+
+      // Drop all inventory items around the death location
+      player.contents.inventory.forEach((item, index) => {
+        // Calculate random offsets for x and y within ±2 units
+        const offsetX = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const offsetY = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const dropX = deathPos.x + offsetX;
+        const dropY = deathPos.y + offsetY;
+        const dropZ = 1; // Assuming items are placed on the ground layer
+
+        const dropKey = `${dropX},${dropY},${dropZ}`;
+
+        // If the drop position is already occupied by an item, slightly adjust
+        if (this.world[dropKey] && this.world[dropKey].type === "item") {
+          // Find the next available nearby position
+          let found = false;
+          for (let dx = -1; dx <= 1 && !found; dx++) {
+            for (let dy = -1; dy <= 1 && !found; dy++) {
+              const newX = dropX + dx;
+              const newY = dropY + dy;
+              const newKey = `${newX},${newY},${dropZ}`;
+              if (
+                !this.world[newKey] ||
+                this.world[newKey].type === "empty" ||
+                this.world[newKey].type === "item"
+              ) {
+                this.world[newKey] = {
+                  material: item.name,
+                  type: "item",
+                  item: item,
+                };
+                found = true;
+              }
+            }
+          }
+          if (!found) {
+            // If no nearby position is free, place it at the original position
+            this.world[dropKey] = {
+              material: item.name,
+              type: "item",
+              item: item,
+            };
+          }
+        } else {
+          // Place the item at the calculated drop position
+          this.world[dropKey] = {
+            material: item.name,
+            type: "item",
+            item: item,
+          };
+        }
+      });
+
+      // Clear the player's inventory
+      player.contents.inventory = [];
+
       // Reset player position and health
       player.position = { x: 1, y: 1, z: 1 };
       player.stats.hp = player.stats.maxHp;
-      // Optionally clear inventory or apply penalties
-      // Broadcast death event if needed
+
+      // Optionally, you can broadcast a death event here or handle it in index.js
     }
   }
 

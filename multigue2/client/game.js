@@ -226,7 +226,7 @@ function create() {
       players[p] = new VisualEntity(
         players[p],
         this,
-        this.add.sprite(players[p].x, players[p].y, "player")
+        this.add.sprite(0, 0, "player")
       );
     }
     console.log("players at init", players);
@@ -250,7 +250,11 @@ function create() {
     players[playerData.id] = new VisualEntity(
       playerData,
       this,
-      this.add.sprite(playerData.x, playerData.y, "player")
+      this.add.sprite(
+        playerData.position.x * TILE_SIZE - 32,
+        playerData.position.y * TILE_SIZE - 32,
+        "player"
+      )
     );
   });
 
@@ -293,6 +297,33 @@ function create() {
   socket.on("updateStats", (stats) => {
     players[self].stats = stats;
     this.events.emit("updateStats", stats);
+  });
+
+  // Handle player death and respawn
+  socket.on("kill", (data) => {
+    console.log("Received 'kill' event with data:", data);
+
+    // Update player's position
+    players[self].container.x = data.position.x * TILE_SIZE;
+    players[self].container.y = data.position.y * TILE_SIZE;
+    players[self].position = data.position;
+
+    // Update player's inventory
+    players[self].contents.inventory = data.inventory;
+    this.events.emit("updateInventory", data.inventory);
+
+    // Update player's stats
+    players[self].stats = data.stats;
+    this.events.emit("updateStats", data.stats);
+
+    // Ensure the camera follows the player at the new position
+    this.cameras.main.startFollow(players[self].container);
+
+    // Optionally, display a message to the player
+    this.events.emit("chatMessage", {
+      message: "You have been defeated and have respawned at the spawn point.",
+      timestamp: Date.now(),
+    });
   });
 }
 
@@ -362,7 +393,7 @@ function update(time, delta) {
 
       socket.on("interactionResult", (result) => {
         console.log(result);
-        if (result.type === "pickup") {
+        if (result.type === "pickup" || result.type === "mine") {
           // Update inventory
           players[self].contents.inventory = result.inventory;
           this.events.emit("updateInventory", result.inventory);
