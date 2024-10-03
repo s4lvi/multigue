@@ -5,7 +5,7 @@
   "type": "module",
   "main": "server/server.js",
   "scripts": {
-    "start": "node multigue2/server/index.js"
+    "start": "node multigue2/server2/server.js"
   },
   "author": "jsalvi",
   "license": "MIT",

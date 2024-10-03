@@ -1,3 +1,5 @@
+// entities.js
+
 export class Entity {
   constructor(id, name, position, stats, contents) {
     this.id = id;
