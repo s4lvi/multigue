@@ -34,7 +34,7 @@ const Game = ({
   const keysPressed = useRef({});
   const PLAYER_RADIUS = 0.2;
   const controlsRef = useRef(); // Ref for PointerLockControls
-
+  const { camera, scene } = useThree();
   // Initialize player
   useEffect(() => {
     if (player) {
@@ -289,12 +289,49 @@ const Game = ({
     }
   };
 
-  // Example: Add debug message on firing action
+  // Raycasting logic on firing action
   useEffect(() => {
     const handleMouseDown = () => {
-      // Implement actual targeting logic here
-      const target = "Enemy NPC"; // Placeholder
-      addDebugMessage(`Firing at ${target}`);
+      if (!controlsRef.current?.isLocked) return; // Only allow firing when controls are locked
+
+      // Create a raycaster
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2(0, 0); // Center of the screen
+
+      // Set the raycaster from the camera's position and direction
+      raycaster.setFromCamera(mouse, camera);
+
+      // Define objects to intersect (excluding the player's own mesh if necessary)
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      if (intersects.length > 0) {
+        // Find the first valid intersection
+        for (let i = 0; i < intersects.length; i++) {
+          const intersect = intersects[i];
+          const { object } = intersect;
+          const { type, userId } = object.userData;
+
+          if (type === "wall" || type === "floor" || type === "ceiling") {
+            // Hit a block
+            addDebugMessage(
+              `Firing at ${type} block at position (${intersect.point.x.toFixed(
+                2
+              )}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(
+                2
+              )})`
+            );
+            // Optionally, implement block damage or interaction
+            break;
+          } else if (type === "player" && userId) {
+            // Hit another player
+            addDebugMessage(`Firing at Player: ${userId}`);
+            // Optionally, implement player damage or interaction
+            break;
+          }
+        }
+      } else {
+        addDebugMessage("Firing into empty space.");
+      }
     };
 
     window.addEventListener("mousedown", handleMouseDown);
@@ -302,7 +339,7 @@ const Game = ({
     return () => {
       window.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [addChatMessage]);
+  }, [addChatMessage, camera, scene]);
 
   return (
     <>

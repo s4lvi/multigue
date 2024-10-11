@@ -27,22 +27,22 @@ const Dungeon = ({ grid }) => {
   ceilingTexture.repeat.set(1, 1);
 
   // Memoize meshes for performance
-  const walls = useMemo(() => {
+  const { wallMeshes, floorMeshes, ceilingMeshes } = useMemo(() => {
     const wallMeshes = [];
+    const floorMeshes = [];
     const ceilingMeshes = [];
     for (let z = 0; z < grid.length; z++) {
       for (let x = 0; x < grid[0].length; x++) {
+        const worldX = x - grid[0].length / 2;
+        const worldZ = z - grid.length / 2;
         if (grid[z][x] === 1) {
           // Wall Block
           wallMeshes.push(
             <mesh
               key={`wall-${x}-${z}`}
-              position={[
-                x - grid[0].length / 2,
-                1, // Half the height to center the wall
-                z - grid.length / 2,
-              ]}
+              position={[worldX, 1, worldZ]} // Half the height to center the wall
               receiveShadow
+              userData={{ type: "wall" }} // Tagging as wall
             >
               <boxGeometry args={[1, 1, 1]} />
               <meshStandardMaterial map={wallTexture} />
@@ -50,15 +50,12 @@ const Dungeon = ({ grid }) => {
           );
         } else if (grid[z][x] === 0) {
           // Floor Block
-          wallMeshes.push(
+          floorMeshes.push(
             <mesh
               key={`floor-${x}-${z}`}
-              position={[
-                x - grid[0].length / 2,
-                0, // Ground level
-                z - grid.length / 2,
-              ]}
+              position={[worldX, 0, worldZ]} // Ground level
               receiveShadow
+              userData={{ type: "floor" }} // Tagging as floor
             >
               <boxGeometry args={[1, 1, 1]} />
               <meshStandardMaterial map={floorTexture} />
@@ -69,12 +66,9 @@ const Dungeon = ({ grid }) => {
           ceilingMeshes.push(
             <mesh
               key={`ceiling-${x}-${z}`}
-              position={[
-                x - grid[0].length / 2,
-                2, // Position the ceiling above the wall
-                z - grid.length / 2,
-              ]}
+              position={[worldX, 2, worldZ]} // Position the ceiling above the wall
               receiveShadow
+              userData={{ type: "ceiling" }} // Tagging as ceiling
             >
               <boxGeometry args={[1, 1, 1]} />
               <meshStandardMaterial map={ceilingTexture} />
@@ -84,25 +78,19 @@ const Dungeon = ({ grid }) => {
       }
     }
 
-    return { wallMeshes, ceilingMeshes };
+    return { wallMeshes, floorMeshes, ceilingMeshes };
   }, [grid, wallTexture, floorTexture, ceilingTexture]);
 
   return (
     <group>
       {/* Render Floor Blocks */}
-      {walls.wallMeshes
-        .filter((mesh) => mesh.key.startsWith("floor"))
-        .map((mesh) => mesh)}
+      {floorMeshes.map((mesh) => mesh)}
 
       {/* Render Wall Blocks */}
-      {walls.wallMeshes
-        .filter(
-          (mesh) => mesh.key.startsWith("wall") && !mesh.key.startsWith("floor")
-        )
-        .map((mesh) => mesh)}
+      {wallMeshes.map((mesh) => mesh)}
 
       {/* Render Ceiling Blocks */}
-      {walls.ceilingMeshes.map((mesh) => mesh)}
+      {ceilingMeshes.map((mesh) => mesh)}
     </group>
   );
 };
