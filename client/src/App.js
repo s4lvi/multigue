@@ -8,7 +8,7 @@ import { Html } from "@react-three/drei";
 import io from "socket.io-client";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-const socket = io("http://localhost:3000");
+const socket = io(process.env.REACT_APP_SOCKET_URL || "/");
 
 const App = () => {
   const [username, setUsername] = useState("");
