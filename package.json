@@ -8,8 +8,8 @@
     "client"
   ],
   "scripts": {
-    "start": "node server/src/server.js",
-    "heroku-postbuild": "npm install --prefix client && npm run build --prefix client"
+    "start": "node multigue3/server/src/server.js",
+    "heroku-postbuild": "npm install --prefix multigue3/client && npm run build --prefix multigue3/client"
   },
   "author": "jsalvi",
   "license": "MIT",
