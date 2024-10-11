@@ -20,11 +20,12 @@ exports.initialize = (server) => {
     // Handle player registration
     socket.on("register", async ({ username }, callback) => {
       try {
-        let user = await User.findOne({ username });
-        if (!user) {
-          user = new User({ username, position: { x: 0, y: 0, z: 0 } });
-          await user.save();
-        }
+        let user = new User({ username, position: { x: 0, y: 0, z: 0 } });
+        // let user = await User.findOne({ username });
+        // if (!user) {
+        //   user = new User({ username, position: { x: 0, y: 0, z: 0 } });
+        //   await user.save();
+        // }
         players[socket.id] = {
           userId: user._id,
           username: user.username,
