@@ -92,15 +92,19 @@ const generateDungeon = () => {
     }
   }
 
+  // Calculate room centers
+  const roomCenters = rooms.map((room) => ({
+    x: Math.floor(room.x + room.width / 2),
+    z: Math.floor(room.y + room.height / 2),
+  }));
+
   // Ensure the starting position is clear and within the first room
-  const startingRoom = rooms[0];
-  if (startingRoom) {
-    const startX = Math.floor(startingRoom.x + startingRoom.width / 2);
-    const startY = Math.floor(startingRoom.y + startingRoom.height / 2);
-    grid[startY][startX] = 0;
+  if (roomCenters.length > 0) {
+    const startingRoomCenter = roomCenters[0];
+    grid[startingRoomCenter.z][startingRoomCenter.x] = 0;
   }
 
-  return grid;
+  return { grid, rooms: roomCenters };
 };
 
 module.exports = generateDungeon;

@@ -1,7 +1,7 @@
 // server/src/services/socketService.js
 
 const socketio = require("socket.io");
-const User = require("../models/User");
+const User = require("../models/User"); // Ensure this is your plain JS User class
 const generateDungeon = require("./generationService");
 
 const players = {}; // In-memory storage for prototype
@@ -20,22 +20,45 @@ exports.initialize = (server) => {
     // Handle player registration
     socket.on("register", async ({ username }, callback) => {
       try {
-        let user = new User({ username, position: { x: 0, y: 0, z: 0 } });
-        // let user = await User.findOne({ username });
-        // if (!user) {
-        //   user = new User({ username, position: { x: 0, y: 0, z: 0 } });
-        //   await user.save();
-        // }
+        // Select a random room center from the dungeon
+        if (!dungeon.rooms || dungeon.rooms.length === 0) {
+          return callback({ status: "error", message: "No rooms available" });
+        }
+
+        const randomIndex = Math.floor(Math.random() * dungeon.rooms.length);
+        const selectedRoom = dungeon.rooms[randomIndex];
+
+        // Create a new user with the selected position
+        let user = new User({
+          username,
+          currentLocation: "overworld",
+          position: { x: selectedRoom.x, y: 0, z: selectedRoom.z },
+          inventory: [],
+          stats: { health: 100, level: 1, experience: 0 },
+        });
+
+        // Optionally, save the user to the database
+        // await user.save();
+
+        // Assign user to in-memory players object
         players[socket.id] = {
-          userId: user._id,
+          userId: socket.id, // Using socket.id as a unique identifier
           username: user.username,
           position: user.position,
         };
+
+        // Join the player to the "overworld" room
         socket.join("overworld");
+
+        // Notify all players in the "overworld" about the new player
         io.to("overworld").emit("playerJoined", players[socket.id]);
 
         // Send dungeon data via callback
-        callback({ status: "ok", player: players[socket.id], dungeon });
+        callback({
+          status: "ok",
+          player: players[socket.id],
+          dungeon: dungeon.grid,
+        });
       } catch (error) {
         console.error(error);
         callback({ status: "error", message: "Registration failed" });
@@ -45,7 +68,7 @@ exports.initialize = (server) => {
     // Handle player movement
     socket.on("move", ({ position }) => {
       if (players[socket.id]) {
-        let oldPos = players[socket.id].position;
+        const oldPos = players[socket.id].position;
         players[socket.id].position = position;
         console.log(
           `Player ${players[socket.id].userId} moved from ${JSON.stringify(
