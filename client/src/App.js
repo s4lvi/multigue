@@ -20,6 +20,7 @@ const App = () => {
   const [initialItems, setInitialItems] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false); // State for chat
   const [health, setHealth] = useState(100);
+  const [players, setPlayers] = useState({});
   const [weapon, setWeapon] = useState(null);
 
   const chatRef = useRef(null); // Ref for Chat component
@@ -31,6 +32,7 @@ const App = () => {
           setPlayer(response.player);
           setDungeon(response.dungeon);
           setInitialItems(response.items);
+          setPlayers(response.players);
           setRegistered(true);
 
           // Log player's initial position for debugging
@@ -149,7 +151,8 @@ const App = () => {
                     addChatMessage={addChatMessage}
                     onRequestChat={handleOpenChat}
                     setHealth={setHealth}
-                    setWeapon={setWeapon} // Pass the callback
+                    setWeapon={setWeapon}
+                    initialPlayers={players} // Pass the callback
                   />
                 </Suspense>
               </ErrorBoundary>

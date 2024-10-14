@@ -47,6 +47,17 @@ const Dungeon = ({ grid }) => {
               <meshStandardMaterial map={wallTexture} />
             </mesh>
           );
+          wallMeshes.push(
+            <mesh
+              key={`wall-${x}-${z}`}
+              position={[worldX, 2, worldZ]} // Half the height to center the wall
+              receiveShadow
+              userData={{ type: "wall" }} // Tagging as wall
+            >
+              <boxGeometry args={[1, 1, 1]} />
+              <meshStandardMaterial map={wallTexture} />
+            </mesh>
+          );
         } else if (grid[z][x] === 0) {
           // Floor Block
           floorMeshes.push(
@@ -65,7 +76,7 @@ const Dungeon = ({ grid }) => {
           ceilingMeshes.push(
             <mesh
               key={`ceiling-${x}-${z}`}
-              position={[worldX, 2, worldZ]} // Position the ceiling above the wall
+              position={[worldX, 3, worldZ]} // Position the ceiling above the wall
               receiveShadow
               userData={{ type: "ceiling" }} // Tagging as ceiling
             >

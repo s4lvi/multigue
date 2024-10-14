@@ -47,6 +47,7 @@ const OtherPlayers = ({ players, localId }) => {
                 {username}
               </Text>
             </Billboard>
+            <pointLight color="#f93" intensity={5} position={[x, 1.4, z]} />
           </group>
         );
       })}

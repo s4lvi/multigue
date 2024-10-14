@@ -185,6 +185,7 @@ exports.initialize = (server) => {
           player: players[socket.id],
           dungeon: dungeon.grid,
           items, // Send current items
+          players,
         });
       } catch (error) {
         console.error(error);

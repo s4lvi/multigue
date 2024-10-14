@@ -38,9 +38,10 @@ const Game = ({
   addChatMessage,
   onRequestChat,
   setHealth,
-  setWeapon, // Callback to open chat
+  setWeapon,
+  initialPlayers, // Callback to open chat
 }) => {
-  const [players, setPlayers] = useState({});
+  const [players, setPlayers] = useState(initialPlayers);
   const [dungeonGrid, setDungeonGrid] = useState(null);
   const [items, setItems] = useState(initialItems); // State to hold items
   const [localId, setLocalId] = useState(null);
@@ -526,6 +527,15 @@ const Game = ({
       <PreloadSounds />
       <PointerLockControls ref={controlsRef} />
       <ambientLight intensity={0.2} />
+      <pointLight
+        color="#f93"
+        intensity={5}
+        position={[
+          players[localId]?.position.x,
+          1.4,
+          players[localId]?.position.z,
+        ]}
+      />
       <directionalLight position={[10, 10, 5]} intensity={0.5} />
       <Sky sunPosition={[100, 20, 100]} />
       {dungeonGrid && <Dungeon grid={dungeonGrid} />}
