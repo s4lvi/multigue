@@ -378,9 +378,9 @@ const Game = ({
           }));
 
           socket.emit("move", { position: finalPos });
-          console.log(`Player ${localId} slid to ${JSON.stringify(finalPos)}`);
+          //console.log(`Player ${localId} slid to ${JSON.stringify(finalPos)}`);
         } else {
-          console.log("Collision detected. Movement blocked.");
+          //console.log("Collision detected. Movement blocked.");
         }
       }
     }

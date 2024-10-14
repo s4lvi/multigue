@@ -64,14 +64,26 @@ const handlePlayerDeath = (userId, io) => {
 
   // Drop all inventory items as corpses
   player.inventory.forEach((item) => {
-    const corpse = {
-      id: uuidv4(),
-      type: "corpse",
-      position: { ...player.position },
+    const drop = {
+      id: item.id,
+      type: item.type,
+      position: {
+        x: player.position.x + Math.floor(Math.random() * 11) - 5,
+        y: 0.75,
+        z: player.position.z + Math.floor(Math.random() * 11) - 5,
+      },
     };
-    items.push(corpse);
-    io.to("overworld").emit("itemAdded", corpse);
+    items.push(drop);
+    io.to("overworld").emit("itemAdded", item);
   });
+
+  const corpse = {
+    id: uuidv4(),
+    type: "corpse",
+    position: { ...player.position },
+  };
+
+  io.to("overworld").emit("itemAdded", corpse);
 
   // Reset player's inventory and health
   player.inventory = [];
