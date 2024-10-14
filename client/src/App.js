@@ -157,12 +157,34 @@ const App = () => {
           <div
             style={{
               position: "absolute",
-              width: "50%",
-              height: "50%",
-              zIndex: "999",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 999,
+              pointerEvents: "none", // Ensures the crosshair doesn't block other interactions
+              width: "20px",
+              height: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            o
+            <div
+              style={{
+                position: "absolute",
+                width: "2px",
+                height: "100%",
+                backgroundColor: "white",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "2px",
+                backgroundColor: "white",
+              }}
+            />
           </div>
         </div>
       )}
