@@ -526,7 +526,7 @@ const Game = ({
     <>
       <PreloadSounds />
       <PointerLockControls ref={controlsRef} />
-      <ambientLight intensity={0.2} />
+      <ambientLight intensity={0.1} />
       <pointLight
         color="#f93"
         intensity={5}
@@ -536,7 +536,7 @@ const Game = ({
           players[localId]?.position.z,
         ]}
       />
-      <directionalLight position={[10, 10, 5]} intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={0.7} color="#645" />
       <Sky sunPosition={[100, 20, 100]} />
       {dungeonGrid && <Dungeon grid={dungeonGrid} />}
       <Items items={items} />
