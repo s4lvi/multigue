@@ -462,6 +462,7 @@ const Game = ({
         players[localId].inventory[players[localId].equippedIndex];
       if (!equippedItem) return;
 
+      setIsAttacking(true);
       if (equippedItem.type === "sword") {
         socket.emit("attack", { weapon: "sword" });
         // Trigger sword attack animation here
@@ -472,11 +473,16 @@ const Game = ({
         // Trigger gun shoot animation here
       }
     };
+    const handleMouseUp = () => {
+      setIsAttacking(false);
+    };
 
     window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
 
     return () => {
       window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [addChatMessage, camera, socket, localId, players]);
 
@@ -496,6 +502,7 @@ const Game = ({
         equippedItem={
           players[localId]?.inventory[players[localId]?.equippedIndex]
         }
+        attacking={isAttacking}
       />
     </>
   );

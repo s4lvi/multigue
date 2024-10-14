@@ -7,7 +7,7 @@ import swordReadyImg from "../assets/textures/sword_ready.png";
 import gunReadyImg from "../assets/textures/gun_ready.png";
 import { Billboard } from "@react-three/drei";
 
-const FirstPersonWeapon = ({ equippedItem }) => {
+const FirstPersonWeapon = ({ equippedItem, attacking }) => {
   const { camera } = useThree();
   const weaponRef = useRef();
 
@@ -28,7 +28,10 @@ const FirstPersonWeapon = ({ equippedItem }) => {
 
   return (
     <Billboard ref={weaponRef}>
-      <sprite scale={0.15} position={[0.1, -0.12, -0.1]}>
+      <sprite
+        scale={0.15}
+        position={attacking ? [0.09, -0.13, -0.1] : [0.1, -0.12, -0.1]}
+      >
         <spriteMaterial
           map={
             equippedItem?.type === "sword"
