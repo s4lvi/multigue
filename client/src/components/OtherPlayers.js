@@ -37,14 +37,12 @@ const OtherPlayers = ({ players, localId }) => {
             </Billboard>
 
             {/* Player Name */}
-            <Billboard position={[x, y + 1.2, z]}>
+            <Billboard position={[x, y + 1.4, z]}>
               <Text
                 fontSize={0.1}
                 color="white"
                 anchorX="center"
                 anchorY="bottom"
-                outlineWidth={0.005}
-                outlineColor="black"
               >
                 {username}
               </Text>

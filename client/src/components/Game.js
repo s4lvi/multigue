@@ -214,23 +214,15 @@ const Game = ({
       }
     });
 
-    useEffect(() => {
-      socket.on("bulletHit", ({ shooterId, targetId, position }) => {
-        if (targetId === localId) {
-          // Existing logic for player being hit
-          setIsHit(true);
-          setTimeout(() => setIsHit(false), 500);
-        }
-
-        // Add a new HitMarker at the hit position
-        if (position) {
-          const id = uuidv4();
-          setHitMarkers((prev) => [...prev, { id, position }]);
-        }
-      });
-
-      // ... [Cleanup]
-    }, [socket, localId]);
+    // Bullet hit
+    socket.on("bulletHit", ({ shooterId, targetId, position }) => {
+      if (targetId === localId) {
+        setIsHit(true);
+        setTimeout(() => setIsHit(false), 500);
+      }
+      // Optionally, display bullet impact at the position
+      setBullets((prev) => [...prev, { id: uuidv4(), position, type: "hit" }]);
+    });
 
     // Bullet miss (optional)
     socket.on("bulletMiss", ({ shooterId, direction }) => {
