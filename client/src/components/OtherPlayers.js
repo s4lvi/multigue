@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useLoader } from "@react-three/fiber";
-import { Text } from "@react-three/drei"; // Import Text component
+import { Text, Billboard } from "@react-three/drei"; // Import Billboard
 import * as THREE from "three";
 import playerSpriteImg from "../assets/textures/player.png";
 
@@ -13,35 +13,42 @@ const OtherPlayers = ({ players, localId }) => {
   return (
     <>
       {Object.keys(players).map((id) => {
-        // Skip rendering the local player
-        if (players[id].userId === localId) return null;
+        const player = players[id];
 
-        const { x, y, z, username } = players[id].position
-          ? { ...players[id].position, username: players[id].username }
-          : { x: 0, y: 0, z: 0, username: "Unknown" };
+        // Skip rendering the local player
+        if (player.userId === localId) return null;
+
+        const { x, y, z } = player.position
+          ? player.position
+          : { x: 0, y: 0, z: 0 };
+        const username = player.username || "Unknown";
 
         return (
           <group key={id}>
             {/* Player Sprite */}
-            <sprite position={[x, y + 0.9, z]} scale={0.9}>
-              <spriteMaterial
-                map={spriteTexture}
-                transparent={true}
-                depthWrite={false} // Prevent z-buffer issues
-              />
-            </sprite>
+            <Billboard position={[x, y + 0.9, z]}>
+              <sprite scale={[0.9, 0.9, 0.9]}>
+                <spriteMaterial
+                  map={spriteTexture}
+                  transparent={true}
+                  depthWrite={false}
+                />
+              </sprite>
+            </Billboard>
+
             {/* Player Name */}
-            <Text
-              position={[x, y + 1.2, z]} // Position above the sprite
-              fontSize={0.1}
-              color="white"
-              anchorX="center"
-              anchorY="bottom"
-              outlineWidth={0.005}
-              outlineColor="black"
-            >
-              {username}
-            </Text>
+            <Billboard position={[x, y + 1.2, z]}>
+              <Text
+                fontSize={0.1}
+                color="white"
+                anchorX="center"
+                anchorY="bottom"
+                outlineWidth={0.005}
+                outlineColor="black"
+              >
+                {username}
+              </Text>
+            </Billboard>
           </group>
         );
       })}

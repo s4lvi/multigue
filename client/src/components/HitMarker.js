@@ -1,38 +1,41 @@
 // client/src/components/HitMarker.js
 
-import React, { useEffect, useState } from "react";
-import { Html } from "@react-three/drei";
+import React, { useEffect, useRef } from "react";
+import { useLoader, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import hitMarkerImg from "../assets/textures/hit_marker.png"; // Ensure this path is correct
 
-const HitMarker = ({ isHit }) => {
-  const [visible, setVisible] = useState(false);
+const HitMarker = ({ position, onComplete }) => {
+  const texture = useLoader(THREE.TextureLoader, hitMarkerImg);
+  const spriteRef = useRef();
+  const lifetime = 0.5; // seconds
+  const startTime = useRef(performance.now());
 
-  useEffect(() => {
-    if (isHit) {
-      setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 500); // Hide after 0.5 seconds
-      return () => clearTimeout(timer);
+  useFrame(() => {
+    const elapsed = (performance.now() - startTime.current) / 1000;
+    if (elapsed > lifetime) {
+      if (onComplete) onComplete();
+    } else {
+      // Optional: Add scaling or fading effects
+      const scale = THREE.MathUtils.lerp(1, 0.5, elapsed / lifetime);
+      spriteRef.current.scale.set(scale, scale, scale);
+      spriteRef.current.material.opacity = THREE.MathUtils.lerp(
+        1,
+        0,
+        elapsed / lifetime
+      );
     }
-  }, [isHit]);
-
-  if (!visible) return null;
+  });
 
   return (
-    <Html center>
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          width: "50px",
-          height: "50px",
-          marginLeft: "-25px",
-          marginTop: "-25px",
-          border: "2px solid red",
-          borderRadius: "50%",
-          pointerEvents: "none",
-        }}
+    <sprite ref={spriteRef} position={position}>
+      <spriteMaterial
+        map={texture}
+        transparent={true}
+        opacity={1}
+        depthWrite={false}
       />
-    </Html>
+    </sprite>
   );
 };
 

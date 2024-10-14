@@ -43,6 +43,7 @@ const Game = ({
   const [isHit, setIsHit] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
   const [bullets, setBullets] = useState([]);
+  const [hitMarkers, setHitMarkers] = useState([]);
   const keysPressed = useRef({});
   const PLAYER_RADIUS = 0.2;
   const controlsRef = useRef(); // Ref for PointerLockControls
@@ -213,15 +214,23 @@ const Game = ({
       }
     });
 
-    // Bullet hit
-    socket.on("bulletHit", ({ shooterId, targetId, position }) => {
-      if (targetId === localId) {
-        setIsHit(true);
-        setTimeout(() => setIsHit(false), 500);
-      }
-      // Optionally, display bullet impact at the position
-      setBullets((prev) => [...prev, { id: uuidv4(), position, type: "hit" }]);
-    });
+    useEffect(() => {
+      socket.on("bulletHit", ({ shooterId, targetId, position }) => {
+        if (targetId === localId) {
+          // Existing logic for player being hit
+          setIsHit(true);
+          setTimeout(() => setIsHit(false), 500);
+        }
+
+        // Add a new HitMarker at the hit position
+        if (position) {
+          const id = uuidv4();
+          setHitMarkers((prev) => [...prev, { id, position }]);
+        }
+      });
+
+      // ... [Cleanup]
+    }, [socket, localId]);
 
     // Bullet miss (optional)
     socket.on("bulletMiss", ({ shooterId, direction }) => {
