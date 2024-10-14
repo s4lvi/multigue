@@ -17,7 +17,6 @@ class User {
     this.updatedAt = new Date();
   }
 
-  // Method to update timestamps
   updateTimestamps() {
     this.updatedAt = new Date();
   }
