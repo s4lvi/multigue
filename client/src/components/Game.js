@@ -15,6 +15,7 @@ import PreloadSounds from "./PreloadSounds";
 import PositionalSound from "./PositionalSound";
 
 import { useAudio } from "../AudioContext";
+import NPCs from "./NPCs";
 
 const Player = ({ players, localId }) => {
   const { camera } = useThree();
@@ -38,10 +39,13 @@ const Game = ({
   addChatMessage,
   onRequestChat,
   setHealth,
+  setMana,
   setWeapon,
-  initialPlayers, // Callback to open chat
+  initialPlayers,
+  initialNPCs, // Callback to open chat
 }) => {
   const [players, setPlayers] = useState(initialPlayers);
+  const [npcs, setNPCs] = useState(initialNPCs);
   const [dungeonGrid, setDungeonGrid] = useState(null);
   const [items, setItems] = useState(initialItems); // State to hold items
   const [localId, setLocalId] = useState(null);
@@ -130,6 +134,14 @@ const Game = ({
       setPlayers((prev) => ({
         ...prev,
         [userId]: { ...prev[userId], position },
+      }));
+    });
+
+    socket.on("npcMoved", ({ id, position }) => {
+      console.log("npcMovement", id, npcs[id]);
+      setNPCs((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], position },
       }));
     });
 
@@ -261,6 +273,10 @@ const Game = ({
       // Optionally, handle bullet miss (e.g., display bullet trail)
     });
 
+    socket.on("statsUpdate", (stats) => {
+      players[localId].stats = stats;
+    });
+
     // Cleanup on unmount
     return () => {
       socket.off("playerJoined");
@@ -340,6 +356,7 @@ const Game = ({
 
   useEffect(() => {
     setHealth(players[localId]?.stats.health);
+    setMana(players[localId]?.stats.mana);
     setWeapon(players[localId]?.inventory[players[localId]?.equippedIndex]);
   }, [players[localId]]);
 
@@ -542,6 +559,7 @@ const Game = ({
       <Items items={items} />
       <Player players={players} localId={localId} />
       <OtherPlayers players={players} localId={localId} />
+      <NPCs npcs={npcs} />
       {/* Render HitMarkers */}
       {hitMarkers.map((marker) => (
         <HitMarker

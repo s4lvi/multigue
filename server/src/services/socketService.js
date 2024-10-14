@@ -4,11 +4,13 @@ const socketio = require("socket.io");
 const User = require("../models/User"); // Ensure this is your plain JS User class
 const generateDungeon = require("./generationService");
 const { v4: uuidv4 } = require("uuid"); // For generating unique item IDs
-const THREE = require("three"); // For vector calculations
+const THREE = require("three");
+const NPC = require("../models/NPC"); // Import the NPC class
 
 const players = {}; // In-memory storage for players
 let dungeon = generateDungeon(); // Generate dungeon once
 const items = []; // In-memory storage for items
+const npcs = {}; // In-memory storage for NPCs
 
 // Define weapon properties
 const WEAPON_PROPERTIES = {
@@ -22,7 +24,7 @@ const WEAPON_PROPERTIES = {
   },
 };
 
-// Function to scatter weapons in empty rooms
+// Function to scatter weapons in empty rooms (existing)
 const scatterWeapons = (io = null) => {
   if (!dungeon.rooms || dungeon.rooms.length === 0) return;
 
@@ -49,8 +51,58 @@ const scatterWeapons = (io = null) => {
   });
 };
 
-// Scatter weapons after dungeon generation
+// Function to scatter health and mana potions
+const scatterPotions = (io = null) => {
+  if (!dungeon.rooms || dungeon.rooms.length === 0) return;
+
+  const potionTypes = ["health_potion", "mana_potion"];
+  dungeon.rooms.forEach((room) => {
+    // Randomly decide to place a potion
+    if (Math.random() < 0.8) {
+      // 30% chance to place a potion in a room
+      const itemType =
+        potionTypes[Math.floor(Math.random() * potionTypes.length)];
+      const potion = {
+        id: uuidv4(),
+        type: itemType,
+        position: {
+          x: room.x + (Math.random() - 0.5) * room.width, // Random position within the room
+          y: 0,
+          z: room.z + (Math.random() - 0.5) * room.height,
+        },
+      };
+      console.log(
+        `adding ${itemType} to ${JSON.stringify(room)}, ${JSON.stringify(
+          potion
+        )}`
+      );
+      items.push(potion);
+      if (io) {
+        io.to("overworld").emit("itemAdded", potion);
+      }
+    }
+  });
+};
+
+// Scatter weapons and potions after dungeon generation
 scatterWeapons();
+scatterPotions();
+
+// Initialize NPCs
+const initializeNPCs = (io) => {
+  const numberOfNPCs = 5; // Define how many NPCs you want
+  for (let i = 0; i < numberOfNPCs; i++) {
+    const room =
+      dungeon.rooms[Math.floor(Math.random() * dungeon.rooms.length)];
+    const npc = new NPC({
+      type: "goblin", // You can randomize types if desired
+      position: { x: room.x, y: 0, z: room.z },
+      io: io,
+    });
+    npcs[npc.id] = npc;
+    io.to("overworld").emit("npcAdded", npc);
+  }
+};
 
 // Utility function to calculate distance between two positions
 const calculateDistance = (pos1, pos2) => {
@@ -60,25 +112,32 @@ const calculateDistance = (pos1, pos2) => {
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 };
 
-// Function to handle player death
+// Collision detection (reuse your existing function or adapt it)
+const checkCollision = (position, dungeonGrid) => {
+  const PLAYER_RADIUS = 0.2;
+  const gridX = Math.floor(position.x + dungeonGrid[0].length / 2);
+  const gridZ = Math.floor(position.z + dungeonGrid.length / 2);
+
+  if (
+    gridX < 0 ||
+    gridX >= dungeonGrid[0].length ||
+    gridZ < 0 ||
+    gridZ >= dungeonGrid.length ||
+    dungeonGrid[gridZ][gridX] === 1
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+// Placeholder for io in NPC class (ensure proper scoping)
+let io;
+
+// Function to handle player death (existing)
 const handlePlayerDeath = (userId, io) => {
   const player = players[userId];
   if (!player) return;
-
-  // Drop all inventory items as corpses
-  // player.inventory.forEach((item) => {
-  //   const drop = {
-  //     id: item.id,
-  //     type: item.type,
-  //     position: {
-  //       x: player.position.x + Math.floor(Math.random() * 7) - 3,
-  //       y: 0,
-  //       z: player.position.z + Math.floor(Math.random() * 7) - 3,
-  //     },
-  //   };
-  //   items.push(drop);
-  //   io.to("overworld").emit("itemAdded", item);
-  // });
 
   const corpse = {
     id: uuidv4(),
@@ -91,6 +150,7 @@ const handlePlayerDeath = (userId, io) => {
   // Reset player's inventory and health
   player.inventory = [];
   player.stats.health = 100;
+  player.stats.mana = 100;
 
   // Respawn player at a random room
   const randomIndex = Math.floor(Math.random() * dungeon.rooms.length);
@@ -103,7 +163,7 @@ const handlePlayerDeath = (userId, io) => {
   });
 };
 
-// Placeholder function for gun shooting logic
+// Placeholder function for gun shooting logic (existing)
 const findPlayersInDirection = (position, direction) => {
   const hits = [];
   const shooterVector = new THREE.Vector3(
@@ -140,7 +200,7 @@ const findPlayersInDirection = (position, direction) => {
 };
 
 exports.initialize = (server) => {
-  const io = socketio(server, {
+  io = socketio(server, {
     cors: {
       origin: "*",
     },
@@ -164,7 +224,7 @@ exports.initialize = (server) => {
           currentLocation: "overworld",
           position: { x: selectedRoom.x, y: 0, z: selectedRoom.z },
           inventory: [],
-          stats: { health: 100, level: 1, experience: 0 },
+          stats: { health: 100, mana: 100, level: 1, experience: 0 },
         });
 
         players[socket.id] = {
@@ -180,12 +240,17 @@ exports.initialize = (server) => {
 
         io.to("overworld").emit("playerJoined", players[socket.id]);
 
+        // Initialize NPCs if not already done
+        if (Object.keys(npcs).length === 0) {
+          initializeNPCs(io);
+        }
         callback({
           status: "ok",
           player: players[socket.id],
           dungeon: dungeon.grid,
-          items, // Send current items
+          items,
           players,
+          npcs,
         });
       } catch (error) {
         console.error(error);
@@ -193,20 +258,35 @@ exports.initialize = (server) => {
       }
     });
 
-    // Handle item pickup
     socket.on("pickupItem", (itemId, callback) => {
       const player = players[socket.id];
       const itemIndex = items.findIndex((item) => item.id === itemId);
       if (itemIndex !== -1 && player) {
         const item = items[itemIndex];
-        player.inventory.push(item);
-        // Equip the first item if not already equipped
-        if (player.equippedIndex === -1) {
-          player.equippedIndex = 0;
+        // Apply item effect based on type
+        if (item.type === "health_potion") {
+          player.stats.health = Math.min(player.stats.health + 50, 100); // Heal 50 HP, max 100
+          io.to(socket.id).emit("statsUpdated", player.stats);
+        } else if (item.type === "mana_potion") {
+          player.stats.mana = Math.min((player.stats.mana || 0) + 30, 100); // Restore 30 mana, max 100
+          io.to(socket.id).emit("statsUpdated", player.stats);
+        } else {
+          player.inventory.push(item);
+          if (player.equippedIndex === -1) {
+            player.equippedIndex = 0;
+          }
+          io.to(socket.id).emit("inventoryUpdated", player.inventory);
         }
+
         items.splice(itemIndex, 1);
         io.to("overworld").emit("itemRemoved", { itemId });
-        io.to(socket.id).emit("inventoryUpdated", player.inventory);
+
+        // Rescatter items if necessary
+        if (items.length < 2) {
+          scatterWeapons(io);
+          scatterPotions(io);
+        }
+
         callback({ status: "ok" });
       } else {
         callback({
@@ -214,12 +294,9 @@ exports.initialize = (server) => {
           message: "Item not found or player invalid",
         });
       }
-      if (items.length < 2) {
-        scatterWeapons(io);
-      }
     });
 
-    // Handle player movement
+    // Handle player movement (existing)
     socket.on("move", ({ position }) => {
       if (players[socket.id]) {
         const oldPos = players[socket.id].position;
@@ -231,7 +308,7 @@ exports.initialize = (server) => {
       }
     });
 
-    // Handle attacking
+    // Handle attacking (existing)
     socket.on("attack", (data) => {
       const player = players[socket.id];
       if (!player || !player.inventory || player.inventory.length === 0) return;
@@ -301,19 +378,7 @@ exports.initialize = (server) => {
       }
     });
 
-    // Handle shooting (optional, if separate from attack)
-    socket.on("shoot", (data) => {
-      const player = players[socket.id];
-      if (!player) return;
-
-      io.to("overworld").emit("playerShot", {
-        userId: player.userId,
-        direction: data.direction,
-        position: player.position,
-      });
-    });
-
-    // Handle chat messages
+    // Handle chat messages (existing)
     socket.on("chatMessage", (message) => {
       if (players[socket.id]) {
         io.to("overworld").emit("chatMessage", {
@@ -323,7 +388,7 @@ exports.initialize = (server) => {
       }
     });
 
-    // Handle disconnection
+    // Handle disconnection (existing)
     socket.on("disconnect", () => {
       console.log(`Client disconnected: ${socket.id}`);
       if (players[socket.id]) {
@@ -335,8 +400,18 @@ exports.initialize = (server) => {
     });
   });
 
-  // Emit initial items to newly connected players
+  // Emit initial items and NPCs to newly connected players
   io.on("connection", (socket) => {
     socket.emit("itemsUpdate", items);
+    socket.emit("npcsUpdate", Object.values(npcs));
   });
+
+  // NPC Behavior Loop
+  setInterval(() => {
+    const deltaTime = 0.1; // Adjust as needed
+    for (const npc of Object.values(npcs)) {
+      npc.updateState(players);
+      npc.move(dungeon.grid, players, deltaTime, io, handlePlayerDeath);
+    }
+  }, 100); // Update every 100ms
 };
