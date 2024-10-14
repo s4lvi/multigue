@@ -7,6 +7,8 @@ import { Canvas } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import io from "socket.io-client";
 import ErrorBoundary from "./components/ErrorBoundary";
+import FirstPersonWeapon from "./components/FirstPersonWeapon";
+import HealthBar from "./components/HealthBar";
 
 const socket = io(process.env.REACT_APP_SOCKET_URL || "/");
 
@@ -15,7 +17,10 @@ const App = () => {
   const [registered, setRegistered] = useState(false);
   const [player, setPlayer] = useState(null);
   const [dungeon, setDungeon] = useState(null);
+  const [initialItems, setInitialItems] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false); // State for chat
+  const [health, setHealth] = useState(100);
+  const [weapon, setWeapon] = useState(null);
 
   const chatRef = useRef(null); // Ref for Chat component
 
@@ -25,6 +30,7 @@ const App = () => {
         if (response.status === "ok") {
           setPlayer(response.player);
           setDungeon(response.dungeon);
+          setInitialItems(response.items);
           setRegistered(true);
 
           // Log player's initial position for debugging
@@ -101,6 +107,12 @@ const App = () => {
               setIsChatOpen(false);
             }}
           />
+          <HealthBar
+            health={
+              health
+              //players[localId]?.stats.health || 100
+            }
+          />
 
           <div
             className="canvas-wrapper"
@@ -132,12 +144,25 @@ const App = () => {
                     socket={socket}
                     player={player}
                     dungeon={dungeon}
+                    initialItems={initialItems}
                     addChatMessage={addChatMessage}
-                    onRequestChat={handleOpenChat} // Pass the callback
+                    onRequestChat={handleOpenChat}
+                    setHealth={setHealth}
+                    setWeapon={setWeapon} // Pass the callback
                   />
                 </Suspense>
               </ErrorBoundary>
             </Canvas>
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              width: "50%",
+              height: "50%",
+              zIndex: "999",
+            }}
+          >
+            o
           </div>
         </div>
       )}

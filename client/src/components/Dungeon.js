@@ -10,7 +10,6 @@ import floorTextureImg from "../assets/textures/floor.png";
 import ceilingTextureImg from "../assets/textures/ceiling.png";
 
 const Dungeon = ({ grid }) => {
-  console.log(grid);
   // Load textures using Three.js's TextureLoader
   const wallTexture = useLoader(THREE.TextureLoader, wallTextureImg);
   const floorTexture = useLoader(THREE.TextureLoader, floorTextureImg);

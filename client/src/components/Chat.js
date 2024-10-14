@@ -76,7 +76,7 @@ const Chat = forwardRef(({ socket, isOpen, onClose }, ref) => {
       style={{
         position: "fixed",
         bottom: "20px",
-        left: "12%",
+        left: "180px",
         transform: "translateX(-50%)",
         backgroundColor: "rgba(0, 0, 0, 0.7)",
         padding: "10px",

@@ -6,15 +6,20 @@ import { PointerLockControls, Sky } from "@react-three/drei";
 import * as THREE from "three";
 import Dungeon from "./Dungeon";
 import OtherPlayers from "./OtherPlayers";
+import Items from "./Items";
+import HitMarker from "./HitMarker";
+import Bullets from "./Bullets";
+import FirstPersonWeapon from "./FirstPersonWeapon";
+import { v4 as uuidv4 } from "uuid"; // For unique bullet IDs
 
-const Player = ({ socket, players, localId }) => {
+const Player = ({ players, localId }) => {
   const { camera } = useThree();
 
   useEffect(() => {
     if (players[localId]) {
       const { x, y, z } = players[localId].position;
       camera.position.set(x, y + 1.2, z);
-      console.log("Camera initialized at:", camera.position.toArray());
+      //console.log("Camera initialized at:", camera.position.toArray());
     }
   }, [camera, players, localId]);
 
@@ -25,20 +30,70 @@ const Game = ({
   socket,
   player,
   dungeon,
+  initialItems,
   addChatMessage,
-  onRequestChat, // Callback to open chat
+  onRequestChat,
+  setHealth,
+  setWeapon, // Callback to open chat
 }) => {
   const [players, setPlayers] = useState({});
   const [dungeonGrid, setDungeonGrid] = useState(null);
+  const [items, setItems] = useState(initialItems); // State to hold items
   const [localId, setLocalId] = useState(null);
+  const [isHit, setIsHit] = useState(false);
+  const [isAttacking, setIsAttacking] = useState(false);
+  const [bullets, setBullets] = useState([]);
   const keysPressed = useRef({});
   const PLAYER_RADIUS = 0.2;
   const controlsRef = useRef(); // Ref for PointerLockControls
   const { camera, scene } = useThree();
+  // Function to calculate distance between two positions
+  const calculateDistance = (pos1, pos2) => {
+    const dx = pos1.x - pos2.x;
+    const dy = pos1.y - pos2.y;
+    const dz = pos1.z - pos2.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  };
+  // Function to pick up nearby items
+  const pickupNearbyItem = () => {
+    if (!localId || !players[localId]) return;
+    const playerPos = players[localId].position;
+    const pickupRange = 1; // Define pickup range
+
+    const nearbyItem = items.find((item) => {
+      const distance = calculateDistance(playerPos, item.position);
+      return distance < pickupRange;
+    });
+
+    if (nearbyItem) {
+      socket.emit("pickupItem", nearbyItem.id, (response) => {
+        if (response.status === "ok") {
+          addChatMessage(`Picked up a ${nearbyItem.type}!`);
+        } else {
+          addChatMessage(`Failed to pick up item: ${response.message}`);
+        }
+      });
+    } else {
+      addChatMessage("No items nearby to pick up.");
+    }
+  };
+
+  // Function to cycle through inventory
+  const cycleInventory = () => {
+    setPlayers((prev) => {
+      const player = prev[localId];
+      if (!player || !player.inventory.length) return prev;
+      const newIndex = (player.equippedIndex + 1) % player.inventory.length;
+      return {
+        ...prev,
+        [localId]: { ...player, equippedIndex: newIndex },
+      };
+    });
+  };
   // Initialize player
   useEffect(() => {
     if (player) {
-      console.log("got player", player);
+      console.log("Got player:", player);
       setLocalId(player.userId);
       setPlayers((prev) => ({ ...prev, [player.userId]: player }));
     }
@@ -46,13 +101,14 @@ const Game = ({
 
   // Handle socket events
   useEffect(() => {
+    // Player joined
     socket.on("playerJoined", (newPlayer) => {
       console.log("Player joined:", newPlayer.userId);
       setPlayers((prev) => ({ ...prev, [newPlayer.userId]: newPlayer }));
     });
 
+    // Player moved
     socket.on("playerMoved", ({ userId, position }) => {
-      // Avoid updating the local player's position here to prevent conflicts
       if (userId === localId) return;
 
       setPlayers((prev) => ({
@@ -61,15 +117,19 @@ const Game = ({
       }));
     });
 
+    // Player shot (optional for visual effects)
     socket.on("playerShot", ({ userId, direction, position }) => {
       console.log(
-        `${JSON.stringify(players[userId])} shot towards ${JSON.stringify(
-          direction
-        )} from ${JSON.stringify(position)}`
+        `${
+          players[userId]?.username || "Unknown"
+        } shot towards ${JSON.stringify(direction)} from ${JSON.stringify(
+          position
+        )}`
       );
       // Implement shooting logic if needed
     });
 
+    // Player left
     socket.on("playerLeft", ({ userId }) => {
       console.log("Player left:", userId);
       setPlayers((prev) => {
@@ -79,14 +139,110 @@ const Game = ({
       });
     });
 
+    // Item added
+    socket.on("itemAdded", (item) => {
+      setItems((prev) => [...prev, item]);
+      console.log("itemAdded", items);
+    });
+
+    // Item removed
+    socket.on("itemRemoved", ({ itemId }) => {
+      setItems((prev) => prev.filter((item) => item.id !== itemId));
+    });
+
+    // Inventory updated
+    socket.on("inventoryUpdated", (inventory) => {
+      setPlayers((prev) => ({
+        ...prev,
+        [localId]: {
+          ...prev[localId],
+          inventory,
+          equippedIndex: inventory.length > 0 ? 0 : -1, // Reset equipped index
+        },
+      }));
+    });
+
+    // Player hit
+    socket.on("playerHit", ({ userId, damage, newHealth }) => {
+      if (userId === localId) {
+        setIsHit(true); // Trigger hit marker
+        setPlayers((prev) => ({
+          ...prev,
+          [localId]: {
+            ...prev[localId],
+            stats: { ...prev[localId].stats, health: newHealth },
+          },
+        }));
+        addChatMessage(`You were hit! Health: ${newHealth}`);
+        if (newHealth <= 0) {
+          addChatMessage("You have died.");
+        }
+      } else {
+        // Optionally handle other players being hit
+        addChatMessage(
+          `Player ${players[userId]?.username || "Unknown"} was hit!`
+        );
+      }
+    });
+
+    // Player respawned
+    socket.on("playerRespawned", ({ userId, position }) => {
+      if (userId === localId) {
+        setPlayers((prev) => ({
+          ...prev,
+          [localId]: {
+            ...prev[localId],
+            position,
+            inventory: [],
+            stats: { ...prev[localId].stats, health: 100 },
+            equippedIndex: -1,
+          },
+        }));
+        addChatMessage("You have respawned.");
+      } else {
+        setPlayers((prev) => ({
+          ...prev,
+          [userId]: {
+            ...prev[userId],
+            position,
+            inventory: [],
+            stats: { ...prev[userId].stats, health: 100 },
+            equippedIndex: -1,
+          },
+        }));
+      }
+    });
+
+    // Bullet hit
+    socket.on("bulletHit", ({ shooterId, targetId, position }) => {
+      if (targetId === localId) {
+        setIsHit(true);
+        setTimeout(() => setIsHit(false), 500);
+      }
+      // Optionally, display bullet impact at the position
+      setBullets((prev) => [...prev, { id: uuidv4(), position, type: "hit" }]);
+    });
+
+    // Bullet miss (optional)
+    socket.on("bulletMiss", ({ shooterId, direction }) => {
+      // Optionally, handle bullet miss (e.g., display bullet trail)
+    });
+
     // Cleanup on unmount
     return () => {
       socket.off("playerJoined");
       socket.off("playerMoved");
       socket.off("playerShot");
       socket.off("playerLeft");
+      socket.off("itemAdded");
+      socket.off("itemRemoved");
+      socket.off("inventoryUpdated");
+      socket.off("playerHit");
+      socket.off("playerRespawned");
+      socket.off("bulletHit");
+      socket.off("bulletMiss");
     };
-  }, [socket, localId, players]);
+  }, [socket, localId, players, addChatMessage]);
 
   // Set dungeon grid
   useEffect(() => {
@@ -95,15 +251,22 @@ const Game = ({
     }
   }, [dungeon]);
 
-  // Handle key presses for movement and 'T' key
+  // Handle key presses for movement, 'T' key, 'E' key, and 'Q' key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key.toLowerCase() === "t" && controlsRef.current?.isLocked) {
         e.preventDefault();
         console.log("'T' key pressed. Requesting chat.");
         onRequestChat(); // Notify App.js to open chat
-        // Release pointer lock to allow typing
         controlsRef.current.unlock();
+      } else if (e.key.toLowerCase() === "e" && controlsRef.current?.isLocked) {
+        e.preventDefault();
+        console.log("'E' key pressed. Attempting to pick up item.");
+        pickupNearbyItem();
+      } else if (e.key.toLowerCase() === "q" && controlsRef.current?.isLocked) {
+        e.preventDefault();
+        console.log("'Q' key pressed. Cycling inventory.");
+        cycleInventory();
       } else {
         if (controlsRef.current?.isLocked) {
           const key = e.key.toLowerCase();
@@ -124,11 +287,10 @@ const Game = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [onRequestChat]);
+  }, [onRequestChat, cycleInventory, items, players, localId, socket]);
 
   // Re-acquire pointer lock when chat is closed
   useEffect(() => {
-    // Listen for a custom event when chat is closed
     const handleChatClose = () => {
       if (controlsRef.current && !controlsRef.current.isLocked) {
         controlsRef.current.lock();
@@ -142,6 +304,11 @@ const Game = ({
       window.removeEventListener("chatClosed", handleChatClose);
     };
   }, []);
+
+  useEffect(() => {
+    setHealth(players[localId]?.stats.health);
+    setWeapon(players[localId]?.inventory[players[localId]?.equippedIndex]);
+  }, [players[localId]]);
 
   // Handle continuous movement with sliding
   useFrame((state, delta) => {
@@ -178,23 +345,19 @@ const Game = ({
       const canMove = checkCollision(desiredPos);
 
       if (canMove) {
-        // Optimistically update the local player's position
         setPlayers((prev) => ({
           ...prev,
           [localId]: { ...prev[localId], position: desiredPos },
         }));
 
-        // Emit the move event to the server
         socket.emit("move", { position: desiredPos });
-        console.log(`player ${localId} moved to ${JSON.stringify(desiredPos)}`);
+        //console.log(`Player ${localId} moved to ${JSON.stringify(desiredPos)}`);
       } else {
         // Attempt to slide along the X and Z axes separately
 
-        // Attempt X-axis movement
         const posX = { x: x + moveVector.x, y, z };
         const canMoveX = checkCollision(posX);
 
-        // Attempt Z-axis movement
         const posZ = { x, y, z: z + moveVector.z };
         const canMoveZ = checkCollision(posZ);
 
@@ -207,7 +370,7 @@ const Game = ({
         if (canMoveZ) {
           finalPos.z += moveVector.z;
         }
-        // Check if any movement is possible
+
         if (finalPos.x !== x || finalPos.z !== z) {
           setPlayers((prev) => ({
             ...prev,
@@ -215,7 +378,7 @@ const Game = ({
           }));
 
           socket.emit("move", { position: finalPos });
-          console.log(`player ${localId} slid to ${JSON.stringify(finalPos)}`);
+          console.log(`Player ${localId} slid to ${JSON.stringify(finalPos)}`);
         } else {
           console.log("Collision detected. Movement blocked.");
         }
@@ -242,7 +405,6 @@ const Game = ({
     }
 
     // Check surrounding cells based on player radius
-    // Determine the cells the player occupies
     const cellsToCheck = [
       {
         x: Math.round(position.x + dungeonGrid[0].length / 2),
@@ -293,44 +455,20 @@ const Game = ({
   useEffect(() => {
     const handleMouseDown = () => {
       if (!controlsRef.current?.isLocked) return; // Only allow firing when controls are locked
+      if (!localId || !players[localId]) return;
 
-      // Create a raycaster
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2(0, 0); // Center of the screen
+      const equippedItem =
+        players[localId].inventory[players[localId].equippedIndex];
+      if (!equippedItem) return;
 
-      // Set the raycaster from the camera's position and direction
-      raycaster.setFromCamera(mouse, camera);
-
-      // Define objects to intersect (excluding the player's own mesh if necessary)
-      const intersects = raycaster.intersectObjects(scene.children, true);
-
-      if (intersects.length > 0) {
-        // Find the first valid intersection
-        for (let i = 0; i < intersects.length; i++) {
-          const intersect = intersects[i];
-          const { object } = intersect;
-          const { type, userId } = object.userData;
-
-          if (type === "wall" || type === "floor" || type === "ceiling") {
-            // Hit a block
-            addDebugMessage(
-              `Firing at ${type} block at position (${intersect.point.x.toFixed(
-                2
-              )}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(
-                2
-              )})`
-            );
-            // Optionally, implement block damage or interaction
-            break;
-          } else if (type === "player" && userId) {
-            // Hit another player
-            addDebugMessage(`Firing at Player: ${userId}`);
-            // Optionally, implement player damage or interaction
-            break;
-          }
-        }
-      } else {
-        addDebugMessage("Firing into empty space.");
+      if (equippedItem.type === "sword") {
+        socket.emit("attack", { weapon: "sword" });
+        // Trigger sword attack animation here
+      } else if (equippedItem.type === "gun") {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        socket.emit("attack", { weapon: "gun", direction: direction });
+        // Trigger gun shoot animation here
       }
     };
 
@@ -339,17 +477,25 @@ const Game = ({
     return () => {
       window.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [addChatMessage, camera, scene]);
+  }, [addChatMessage, camera, socket, localId, players]);
 
   return (
     <>
       <PointerLockControls ref={controlsRef} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
+      <ambientLight intensity={0.2} />
+      <directionalLight position={[10, 10, 5]} intensity={0.5} />
       <Sky sunPosition={[100, 20, 100]} />
       {dungeonGrid && <Dungeon grid={dungeonGrid} />}
-      <Player socket={socket} players={players} localId={localId} />
+      <Items items={items} />
+      <Player players={players} localId={localId} />
       <OtherPlayers players={players} localId={localId} />
+      <HitMarker isHit={isHit} />
+      {/* <Bullets bullets={bullets} setBullets={setBullets} />{" "} */}
+      <FirstPersonWeapon
+        equippedItem={
+          players[localId]?.inventory[players[localId]?.equippedIndex]
+        }
+      />
     </>
   );
 };
