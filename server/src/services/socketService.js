@@ -63,19 +63,19 @@ const handlePlayerDeath = (userId, io) => {
   if (!player) return;
 
   // Drop all inventory items as corpses
-  player.inventory.forEach((item) => {
-    const drop = {
-      id: item.id,
-      type: item.type,
-      position: {
-        x: player.position.x + Math.floor(Math.random() * 11) - 5,
-        y: 0.75,
-        z: player.position.z + Math.floor(Math.random() * 11) - 5,
-      },
-    };
-    items.push(drop);
-    io.to("overworld").emit("itemAdded", item);
-  });
+  // player.inventory.forEach((item) => {
+  //   const drop = {
+  //     id: item.id,
+  //     type: item.type,
+  //     position: {
+  //       x: player.position.x + Math.floor(Math.random() * 7) - 3,
+  //       y: 0,
+  //       z: player.position.z + Math.floor(Math.random() * 7) - 3,
+  //     },
+  //   };
+  //   items.push(drop);
+  //   io.to("overworld").emit("itemAdded", item);
+  // });
 
   const corpse = {
     id: uuidv4(),
@@ -209,6 +209,9 @@ exports.initialize = (server) => {
           status: "error",
           message: "Item not found or player invalid",
         });
+      }
+      if (items.length < 4) {
+        scatterWeapons();
       }
     });
 

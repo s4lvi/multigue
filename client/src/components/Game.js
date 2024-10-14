@@ -11,6 +11,10 @@ import HitMarker from "./HitMarker";
 import Bullets from "./Bullets";
 import FirstPersonWeapon from "./FirstPersonWeapon";
 import { v4 as uuidv4 } from "uuid"; // For unique bullet IDs
+import PreloadSounds from "./PreloadSounds";
+import PositionalSound from "./PositionalSound";
+
+import { useAudio } from "../AudioContext";
 
 const Player = ({ players, localId }) => {
   const { camera } = useThree();
@@ -46,7 +50,17 @@ const Game = ({
   const [hitMarkers, setHitMarkers] = useState([]);
   const keysPressed = useRef({});
   const PLAYER_RADIUS = 0.2;
-  const controlsRef = useRef(); // Ref for PointerLockControls
+  const controlsRef = useRef();
+
+  const [gunshotPositions, setGunshotPositions] = useState([]);
+
+  const {
+    triggerGunshot,
+    triggerFootstep,
+    triggerHit,
+    triggerSwing,
+    triggerDeath,
+  } = useAudio();
   const { camera, scene } = useThree();
   // Function to calculate distance between two positions
   const calculateDistance = (pos1, pos2) => {
@@ -175,14 +189,24 @@ const Game = ({
           },
         }));
         addChatMessage(`You were hit! Health: ${newHealth}`);
+        triggerHit();
         if (newHealth <= 0) {
           addChatMessage("You have died.");
+          triggerDeath();
         }
       } else {
         // Optionally handle other players being hit
         addChatMessage(
           `Player ${players[userId]?.username || "Unknown"} was hit!`
         );
+        if (
+          calculateDistance(
+            players[userId]?.position,
+            players[localId]?.position
+          ) < 15
+        ) {
+          triggerHit();
+        }
       }
     });
 
@@ -220,8 +244,15 @@ const Game = ({
         setIsHit(true);
         setTimeout(() => setIsHit(false), 500);
       }
-      // Optionally, display bullet impact at the position
-      setBullets((prev) => [...prev, { id: uuidv4(), position, type: "hit" }]);
+      // Add a new HitMarker at the hit position
+      if (position) {
+        const id = uuidv4();
+        setHitMarkers((prev) => [...prev, { id, position }]);
+      }
+      // Trigger positional gunshot sound if another player fired
+      if (shooterId !== localId && position) {
+        setGunshotPositions((prev) => [...prev, position]);
+      }
     });
 
     // Bullet miss (optional)
@@ -351,6 +382,7 @@ const Game = ({
           [localId]: { ...prev[localId], position: desiredPos },
         }));
 
+        triggerFootstep();
         socket.emit("move", { position: desiredPos });
         //console.log(`Player ${localId} moved to ${JSON.stringify(desiredPos)}`);
       } else {
@@ -378,6 +410,7 @@ const Game = ({
             [localId]: { ...prev[localId], position: finalPos },
           }));
 
+          triggerFootstep();
           socket.emit("move", { position: finalPos });
           //console.log(`Player ${localId} slid to ${JSON.stringify(finalPos)}`);
         } else {
@@ -466,11 +499,13 @@ const Game = ({
       if (equippedItem.type === "sword") {
         socket.emit("attack", { weapon: "sword" });
         // Trigger sword attack animation here
+        triggerSwing();
       } else if (equippedItem.type === "gun") {
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
         socket.emit("attack", { weapon: "gun", direction: direction });
         // Trigger gun shoot animation here
+        triggerGunshot();
       }
     };
     const handleMouseUp = () => {
@@ -488,6 +523,7 @@ const Game = ({
 
   return (
     <>
+      <PreloadSounds />
       <PointerLockControls ref={controlsRef} />
       <ambientLight intensity={0.2} />
       <directionalLight position={[10, 10, 5]} intensity={0.5} />
@@ -496,13 +532,31 @@ const Game = ({
       <Items items={items} />
       <Player players={players} localId={localId} />
       <OtherPlayers players={players} localId={localId} />
-      <HitMarker isHit={isHit} />
+      {/* Render HitMarkers */}
+      {hitMarkers.map((marker) => (
+        <HitMarker
+          key={marker.id}
+          position={[marker.position.x, marker.position.y, marker.position.z]}
+          onComplete={() =>
+            setHitMarkers((prev) => prev.filter((m) => m.id !== marker.id))
+          }
+        />
+      ))}
+      {/* Render PositionalSound for gunshots */}
+      {gunshotPositions.map((pos, index) => (
+        <PositionalSound
+          key={index}
+          position={[pos.x, pos.y, pos.z]}
+          volume={0.5}
+        />
+      ))}
       {/* <Bullets bullets={bullets} setBullets={setBullets} />{" "} */}
       <FirstPersonWeapon
         equippedItem={
           players[localId]?.inventory[players[localId]?.equippedIndex]
         }
         attacking={isAttacking}
+        hit={isHit}
       />
     </>
   );

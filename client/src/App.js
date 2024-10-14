@@ -7,7 +7,7 @@ import { Canvas } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import io from "socket.io-client";
 import ErrorBoundary from "./components/ErrorBoundary";
-import FirstPersonWeapon from "./components/FirstPersonWeapon";
+import BackgroundMusic from "./components/BackgroundMusic";
 import HealthBar from "./components/HealthBar";
 
 const socket = io(process.env.REACT_APP_SOCKET_URL || "/");
@@ -97,6 +97,7 @@ const App = () => {
             position: "relative", // To position Chat absolutely
           }}
         >
+          <BackgroundMusic />
           {/* Render Chat outside the Canvas */}
           <Chat
             ref={chatRef}
