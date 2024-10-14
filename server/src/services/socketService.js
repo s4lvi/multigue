@@ -23,7 +23,7 @@ const WEAPON_PROPERTIES = {
 };
 
 // Function to scatter weapons in empty rooms
-const scatterWeapons = () => {
+const scatterWeapons = (io = null) => {
   if (!dungeon.rooms || dungeon.rooms.length === 0) return;
 
   dungeon.rooms.forEach((room) => {
@@ -43,6 +43,9 @@ const scatterWeapons = () => {
       `adding ${itemType} to ${JSON.stringify(room)}, ${JSON.stringify(item)}`
     );
     items.push(item);
+    if (io) {
+      io.to("overworld").emit("itemAdded", item);
+    }
   });
 };
 
@@ -210,8 +213,8 @@ exports.initialize = (server) => {
           message: "Item not found or player invalid",
         });
       }
-      if (items.length < 4) {
-        scatterWeapons();
+      if (items.length < 2) {
+        scatterWeapons(io);
       }
     });
 
