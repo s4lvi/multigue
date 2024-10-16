@@ -6,7 +6,7 @@ const generateDungeon = () => {
   const grid = Array.from({ length: height }, () => Array(width).fill(1)); // 1 represents walls
 
   const rooms = [];
-  const maxRooms = 10;
+  const maxRooms = 20;
   const roomMinSize = 5;
   const roomMaxSize = 10;
 

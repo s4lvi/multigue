@@ -183,7 +183,6 @@ const Game = ({
 
     // Inventory updated
     socket.on("inventoryUpdated", (inventory) => {
-      console.log("inv update", inventory);
       setPlayers((prev) => ({
         ...prev,
         [localId]: {
@@ -195,7 +194,6 @@ const Game = ({
     });
 
     socket.on("statsUpdated", (stats) => {
-      console.log("stat update", stats);
       setPlayers((prev) => ({
         ...prev,
         [localId]: {
@@ -594,7 +592,6 @@ const Game = ({
               const player = prev[localId];
               if (!player || !player.inventory.length) return prev;
               const newInv = player.inventory.splice(player.equippedIndex, 1);
-              console.log("setting newInv", newInv);
               const newIndex = -1;
               return {
                 ...prev,
