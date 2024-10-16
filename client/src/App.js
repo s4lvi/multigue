@@ -9,6 +9,7 @@ import io from "socket.io-client";
 import ErrorBoundary from "./components/ErrorBoundary";
 import BackgroundMusic from "./components/BackgroundMusic";
 import HealthBar from "./components/HealthBar";
+import { TextureProvider } from "./components/TextureContext"; // Import TextureProvider
 
 // Initialize Socket.io connection
 const socket = io(process.env.REACT_APP_SOCKET_URL || "/");
@@ -153,6 +154,8 @@ const App = () => {
           >
             <Canvas shadows>
               <ErrorBoundary>
+                {" "}
+                {/* Wrap with TextureProvider */}
                 <React.Suspense
                   fallback={
                     <Html center>
@@ -170,19 +173,21 @@ const App = () => {
                     </Html>
                   }
                 >
-                  <Game
-                    socket={socket}
-                    player={player}
-                    dungeon={dungeon}
-                    initialItems={initialItems}
-                    addChatMessage={addChatMessage}
-                    onRequestChat={handleOpenChat}
-                    setHealth={setHealth}
-                    setMana={setMana}
-                    setWeapon={setWeapon}
-                    initialPlayers={players}
-                    initialNPCs={npcs} // Pass initial NPCs to Game component
-                  />
+                  <TextureProvider>
+                    <Game
+                      socket={socket}
+                      player={player}
+                      dungeon={dungeon}
+                      initialItems={initialItems}
+                      addChatMessage={addChatMessage}
+                      onRequestChat={handleOpenChat}
+                      setHealth={setHealth}
+                      setMana={setMana}
+                      setWeapon={setWeapon}
+                      initialPlayers={players}
+                      initialNPCs={npcs} // Pass initial NPCs to Game component
+                    />
+                  </TextureProvider>
                 </React.Suspense>
               </ErrorBoundary>
             </Canvas>

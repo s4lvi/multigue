@@ -170,32 +170,11 @@ class ItemManager {
     const itemIndex = this.items.findIndex((item) => item.id === itemId);
     if (itemIndex !== -1 && player) {
       const item = this.items[itemIndex];
-      // Apply item effect based on type
-      if (item.type === "health_potion") {
-        player.stats.health = Math.min(
-          player.stats.health + item.stats.healAmount,
-          100
-        );
-        this.io.to(socketId).emit("statsUpdated", player.stats);
-        // addChatMessage(
-        //   `Picked up a Health Potion! Health: ${player.stats.health}`
-        // );
-      } else if (item.type === "mana_potion") {
-        player.stats.mana = Math.min(
-          (player.stats.mana || 0) + item.stats.manaAmount,
-          100
-        );
-        this.io.to(socketId).emit("statsUpdated", player.stats);
-        // addChatMessage(`Picked up a Mana Potion! Mana: ${player.stats.mana}`);
-      } else {
-        // It's a weapon or other inventory item
-        player.inventory.push(item);
-        if (player.equippedIndex === -1) {
-          player.equippedIndex = 0;
-        }
-        this.io.to(socketId).emit("inventoryUpdated", player.inventory);
-        // addChatMessage(`Picked up a ${item.type}!`);
+      player.inventory.push(item);
+      if (player.equippedIndex === -1) {
+        player.equippedIndex = 0;
       }
+      this.io.to(socketId).emit("inventoryUpdated", player.inventory);
 
       // Remove item from the world
       this.items.splice(itemIndex, 1);

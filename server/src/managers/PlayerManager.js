@@ -130,6 +130,27 @@ class PlayerManager {
     // });
   }
 
+  useItem(socketId, direction) {
+    let item =
+      this.players[socketId].inventory[this.players[socketId].equippedIndex];
+    if (!item) return;
+    let stat = item.stats.stat;
+    let amount = item.stats.value;
+    this.players[socketId].stats[stat] = Math.min(
+      this.players[socketId].stats[stat] + amount,
+      100
+    );
+    this.io.to(socketId).emit("statsUpdated", this.players[socketId].stats);
+    this.players[socketId].inventory.splice(
+      this.players[socketId].equippedIndex,
+      1
+    );
+    this.players[socketId].equippedIndex = -1;
+    this.io
+      .to(socketId)
+      .emit("inventoryUpdated", this.players[socketId].inventory);
+  }
+
   sendChatMessage(socketId, message) {
     const player = this.players[socketId];
     if (player) {

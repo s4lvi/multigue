@@ -42,6 +42,11 @@ class SocketHandler {
         this.gameManager.handlePlayerPickup(socket.id, itemId, callback);
       });
 
+      // Handle item pickup
+      socket.on("useItem", (direction) => {
+        this.gameManager.handlePlayerUseItem(socket.id, direction);
+      });
+
       // Handle chat messages
       socket.on("chatMessage", (message) => {
         this.gameManager.handleChatMessage(socket.id, message);

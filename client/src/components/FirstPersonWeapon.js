@@ -1,32 +1,30 @@
 // client/src/components/FirstPersonWeapon.js
 
-import React, { useRef, useEffect, useState } from "react";
-import { useLoader, useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
-import swordReadyImg from "../assets/textures/sword_ready.png";
-import gunReadyImg from "../assets/textures/gun_ready.png";
+import React, { useRef, useEffect, useContext, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
+import * as THREE from "three";
+import { TextureContext } from "./TextureContext";
 
 const FirstPersonWeapon = ({ equippedItem, attacking, hit }) => {
   const { camera } = useThree();
   const weaponRef = useRef();
+  const { getTexture } = useContext(TextureContext);
   const [texture, setTexture] = useState(null);
 
-  const weaponTextures = {
-    sword: useLoader(THREE.TextureLoader, swordReadyImg),
-    gun: useLoader(THREE.TextureLoader, gunReadyImg),
-    // Add new weapon types here
-  };
-
   useEffect(() => {
-    let tex;
     if (equippedItem) {
-      tex = weaponTextures[equippedItem.name];
-      tex.minFilter = THREE.NearestFilter;
-      tex.magFilter = THREE.NearestFilter;
+      // Attempt to get the ready texture first
+      const readyTexture = getTexture(`${equippedItem.name}_ready`);
+      // Fallback to the base texture if ready texture is not found
+      const tex = readyTexture || getTexture(equippedItem.name);
+      if (tex) {
+        setTexture(tex);
+      }
+    } else {
+      setTexture(null);
     }
-    setTexture(equippedItem ? tex : null);
-  }, [equippedItem]);
+  }, [equippedItem, getTexture]);
 
   useFrame(() => {
     if (weaponRef.current) {
@@ -55,7 +53,7 @@ const FirstPersonWeapon = ({ equippedItem, attacking, hit }) => {
             />
           </sprite>
         </Billboard>
-      )}{" "}
+      )}
     </>
   );
 };

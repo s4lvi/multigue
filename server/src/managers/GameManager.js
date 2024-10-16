@@ -49,6 +49,9 @@ class GameManager {
   handlePlayerAttack(socketId, attackData) {
     this.playerManager.attack(socketId, attackData);
   }
+  handlePlayerUseItem(socketId, direction) {
+    this.playerManager.useItem(socketId, direction);
+  }
 
   handlePlayerPickup(socketId, itemId, callback) {
     this.itemManager.pickupItem(socketId, itemId, callback);
@@ -60,7 +63,6 @@ class GameManager {
 
   handlePlayerDeath(playerId) {
     this.playerManager.handleDeath(playerId);
-    this.itemManager.spawnCorpse(this.players[playerId].position);
   }
 
   // Additional methods for interacting with NPCs and Items can be added here

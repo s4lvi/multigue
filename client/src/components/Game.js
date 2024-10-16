@@ -59,7 +59,11 @@ const Game = ({
   const controlsRef = useRef();
 
   const [gunshotPositions, setGunshotPositions] = useState([]);
+  // Ref to track if an action is ongoing to prevent spamming
+  const actionRef = useRef(false);
 
+  // Optionally, define a cooldown duration (in milliseconds)
+  const COOLDOWN_DURATION = 500; // 500ms cooldown
   const {
     triggerGunshot,
     triggerFootstep,
@@ -175,6 +179,7 @@ const Game = ({
 
     // Inventory updated
     socket.on("inventoryUpdated", (inventory) => {
+      console.log("inv update");
       setPlayers((prev) => ({
         ...prev,
         [localId]: {
@@ -183,6 +188,19 @@ const Game = ({
           equippedIndex: inventory.length > 0 ? 0 : -1, // Reset equipped index
         },
       }));
+    });
+
+    socket.on("statsUpdated", (stats) => {
+      console.log("stat update", stats);
+      setPlayers((prev) => ({
+        ...prev,
+        [localId]: {
+          ...prev[localId],
+          stats,
+        },
+      }));
+      setHealth(stats.health);
+      setMana(stats.mana);
     });
 
     // Player hit
@@ -316,6 +334,7 @@ const Game = ({
       socket.off("itemAdded");
       socket.off("itemRemoved");
       socket.off("inventoryUpdated");
+      socket.off("statsUpdated");
       socket.off("playerHit");
       socket.off("playerRespawned");
       socket.off("bulletHit");
@@ -542,26 +561,42 @@ const Game = ({
   // Raycasting logic on firing action
   useEffect(() => {
     const handleMouseDown = () => {
-      if (!controlsRef.current?.isLocked) return; // Only allow firing when controls are locked
+      if (!controlsRef.current?.isLocked) return; // Only allow actions when controls are locked
       if (!localId || !players[localId]) return;
 
-      const equippedItem =
-        players[localId].inventory[players[localId].equippedIndex];
+      const equippedIndex = players[localId].equippedIndex;
+      const equippedItem = players[localId].inventory[equippedIndex];
+      console.log("equipped item", equippedItem);
       if (!equippedItem) return;
 
       setIsAttacking(true);
-      if (equippedItem.class === "melee") {
+
+      if (equippedItem.type === "weapon") {
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
-        socket.emit("attack", { direction: direction });
-        triggerSwing();
-      } else if (equippedItem.class === "ranged") {
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
-        socket.emit("attack", { direction: direction });
-        triggerGunshot();
+
+        if (equippedItem.class === "melee") {
+          socket.emit("attack", { direction: direction });
+          triggerSwing();
+        } else if (equippedItem.class === "ranged") {
+          socket.emit("attack", { direction: direction });
+          triggerGunshot();
+        }
+      } else {
+        // Handle non-weapon items
+        socket.emit("useItem", { itemId: equippedItem.id }, (response) => {
+          if (response.status === "ok") {
+            addChatMessage(`Used ${equippedItem.name}!`);
+          } else {
+            addChatMessage(`Failed to use item: ${response.message}`);
+          }
+        });
+
+        // Optionally, trigger a sound or animation for using the item
+        // Example: triggerUseItemSound();
       }
     };
+
     const handleMouseUp = () => {
       setIsAttacking(false);
     };
@@ -569,6 +604,7 @@ const Game = ({
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mouseup", handleMouseUp);
 
+    // Cleanup function to remove both listeners
     return () => {
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);

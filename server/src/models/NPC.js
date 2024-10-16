@@ -86,6 +86,7 @@ class NPC {
       z: directionVector.z / length,
     };
 
+    const distance = calculateDistance(this.position, targetPlayer.position);
     const speed = this.stats.speed * 1.5 * 0.1; // Chasing faster
     const newPos = {
       x: this.position.x + normalizedDir.x * speed,
@@ -93,11 +94,10 @@ class NPC {
       z: this.position.z + normalizedDir.z * speed,
     };
 
-    if (checkCollision(newPos, dungeonGrid)) {
+    if (checkCollision(newPos, dungeonGrid) && distance > 1.2) {
       this.position = newPos;
     }
 
-    const distance = calculateDistance(this.position, targetPlayer.position);
     if (distance < 1.5 && Date.now() - this.lastAttackTime >= this.cooldown) {
       this.state = "attacking";
       this.attack(targetPlayer);
