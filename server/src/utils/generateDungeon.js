@@ -89,6 +89,8 @@ const generateDungeon = () => {
   const roomCenters = rooms.map((room) => ({
     x: Math.floor(room.x + room.width / 2) - Math.floor(width / 2),
     z: Math.floor(room.y + room.height / 2) - Math.floor(height / 2),
+    width: room.width,
+    height: room.height,
   }));
 
   if (roomCenters.length > 0) {

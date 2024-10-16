@@ -3,6 +3,7 @@
 const User = require("../models/User");
 const { v4: uuidv4 } = require("uuid");
 
+const { calculateDistance } = require("../utils/collision");
 class PlayerManager {
   constructor(gameManager, io) {
     this.gameManager = gameManager;
@@ -69,6 +70,13 @@ class PlayerManager {
     }
   }
 
+  calculateDistance(pos1, pos2) {
+    const dx = pos1.x - pos2.x;
+    const dy = pos1.y - pos2.y;
+    const dz = pos1.z - pos2.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
   attack(socketId, { direction }) {
     const player = this.players[socketId];
     if (!player || !player.inventory || player.inventory.length === 0) return;
@@ -79,61 +87,55 @@ class PlayerManager {
     const weapon = this.WEAPON_PROPERTIES[equippedItem.type];
     if (!weapon) return;
 
-    if (equippedItem.type === "sword") {
-      const hits = [];
-      for (const [id, otherPlayer] of Object.entries(this.players)) {
-        if (id === socketId) continue;
-        const distance = calculateDistance(
-          player.position,
-          otherPlayer.position
-        );
-        if (distance <= weapon.range) {
-          hits.push(id);
+    if (!direction) return;
+    const pHits = this.gameManager.playerManager.findPlayersInDirection(
+      player.position,
+      direction
+    );
+    pHits.forEach((hitId) => {
+      const hitPlayer = this.players[hitId];
+      const distance = this.calculateDistance(
+        player.position,
+        hitPlayer.position
+      );
+      if (hitPlayer && distance <= equippedItem.stats.range) {
+        hitPlayer.stats.health -= weapon.damage;
+        this.io.to("overworld").emit("playerHit", {
+          userId: hitId,
+          damage: weapon.damage,
+          newHealth: hitPlayer.stats.health,
+        });
+        if (hitPlayer.stats.health <= 0) {
+          this.gameManager.handlePlayerDeath(hitId);
         }
       }
-      hits.forEach((hitId) => {
-        const hitPlayer = this.players[hitId];
-        if (hitPlayer) {
-          hitPlayer.stats.health -= weapon.damage;
-          this.io.to("overworld").emit("playerHit", {
-            userId: hitId,
-            damage: weapon.damage,
-            newHealth: hitPlayer.stats.health,
-          });
-          if (hitPlayer.stats.health <= 0) {
-            this.gameManager.handlePlayerDeath(hitId);
-          }
+    });
+    const nHits = this.gameManager.npcManager.findNPCsInDirection(
+      player.position,
+      direction
+    );
+    nHits.forEach((npcId) => {
+      const npc = this.gameManager.npcManager.getNPC(npcId);
+      const distance = this.calculateDistance(player.position, npc.position);
+      if (npc && distance <= equippedItem.stats.range) {
+        npc.takeDamage(weapon.damage);
+        this.io.to("overworld").emit("npcHit", {
+          id: npcId,
+          damage: weapon.damage,
+          newHealth: npc.stats.health,
+        });
+        if (npc.stats.health <= 0) {
+          this.gameManager.npcManager.handleNPCDeath(npcId);
         }
-      });
-    } else if (equippedItem.type === "gun") {
-      if (!direction) return;
+      }
+    });
 
-      const hits = this.gameManager.npcManager.findNPCsInDirection(
-        player.position,
-        direction
-      );
-      hits.forEach((npcId) => {
-        const npc = this.gameManager.npcManager.getNPC(npcId);
-        if (npc) {
-          npc.takeDamage(weapon.damage);
-          this.io.to("overworld").emit("npcHit", {
-            id: npcId,
-            damage: weapon.damage,
-            newHealth: npc.stats.health,
-          });
-          if (npc.stats.health <= 0) {
-            this.gameManager.npcManager.handleNPCDeath(npcId);
-          }
-        }
-      });
-
-      // Emit bullet fired for visual effects
-      this.io.to("overworld").emit("playerShot", {
-        userId: socketId,
-        direction,
-        position: player.position,
-      });
-    }
+    // // Emit bullet fired for visual effects
+    // this.io.to("overworld").emit("playerShot", {
+    //   userId: socketId,
+    //   direction,
+    //   position: player.position,
+    // });
   }
 
   sendChatMessage(socketId, message) {
@@ -168,6 +170,43 @@ class PlayerManager {
       userId: playerId,
       position: player.position,
     });
+  }
+
+  findPlayersInDirection(position, direction) {
+    const hits = [];
+    const shooterVector = direction; // Assumed to be normalized
+
+    for (const [id, player] of Object.entries(this.players)) {
+      const toPlayer = {
+        x: player.position.x - position.x,
+        y: player.position.y - position.y,
+        z: player.position.z - position.z,
+      };
+      const distance = calculateDistance(position, player.position);
+
+      // Normalize toNPC vector
+      const length = Math.sqrt(
+        toPlayer.x ** 2 + toPlayer.y ** 2 + toPlayer.z ** 2
+      );
+      if (length === 0) continue; // Prevent division by zero
+      const toPlayerNormalized = {
+        x: toPlayer.x / length,
+        y: toPlayer.y / length,
+        z: toPlayer.z / length,
+      };
+
+      const dot =
+        toPlayerNormalized.x * shooterVector.x +
+        toPlayerNormalized.y * shooterVector.y +
+        toPlayerNormalized.z * shooterVector.z;
+
+      if (dot > 0.99) {
+        // Adjust threshold as needed
+        hits.push(id);
+      }
+    }
+
+    return hits;
   }
 }
 

@@ -1,0 +1,54 @@
+{
+    "weapons": [
+      {
+        "name": "sword",
+        "type": "weapon",
+        "class": "melee",
+        "stats": {
+          "damage": 25,
+          "range": 1.5
+        },
+        "description": "A sharp blade for close combat."
+      },
+      {
+        "name": "gun",
+        "type": "weapon",
+        "class": "ranged",
+        "stats": {
+          "damage": 40,
+          "range": 10
+        },
+        "description": "A ranged weapon with high damage."
+      }
+    ],
+    "potions": [
+      {
+        "name": "health_potion",
+        "type": "potion",
+        "stats": {
+            "stat": "health",
+          "value": 50
+        },
+        "description": "Restores 50 health points."
+      },
+      {
+        "name": "mana_potion",
+        "type": "potion",
+        "stats": {
+            "stat": "mana",
+          "value": 30
+        },
+        "description": "Restores 30 mana points."
+      }
+    ],
+    "misc": [
+      {
+        "name": "corpse",
+        "stats": {
+          "decayTime": 300
+        },
+        "description": "A fallen enemy's body."
+      }
+    ]
+  }
+  

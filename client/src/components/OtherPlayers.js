@@ -6,7 +6,7 @@ import { Text, Billboard } from "@react-three/drei"; // Import Billboard
 import * as THREE from "three";
 import playerSpriteImg from "../assets/textures/player.png";
 
-const OtherPlayers = ({ players, localId }) => {
+const OtherPlayers = React.memo(({ players, localId }) => {
   // Load the sprite texture
   const spriteTexture = useLoader(THREE.TextureLoader, playerSpriteImg);
 
@@ -53,6 +53,6 @@ const OtherPlayers = ({ players, localId }) => {
       })}
     </>
   );
-};
+});
 
 export default OtherPlayers;

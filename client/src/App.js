@@ -1,6 +1,6 @@
 // client/src/App.js
 
-import React, { useState, Suspense, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Game from "./components/Game";
 import Chat from "./components/Chat"; // Import Chat component
 import { Canvas } from "@react-three/fiber";
@@ -10,58 +10,84 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import BackgroundMusic from "./components/BackgroundMusic";
 import HealthBar from "./components/HealthBar";
 
+// Initialize Socket.io connection
 const socket = io(process.env.REACT_APP_SOCKET_URL || "/");
 
 const App = () => {
+  // State variables for user registration and game state
   const [username, setUsername] = useState("");
   const [registered, setRegistered] = useState(false);
   const [player, setPlayer] = useState(null);
   const [dungeon, setDungeon] = useState(null);
-  const [initialItems, setInitialItems] = useState(null);
-  const [isChatOpen, setIsChatOpen] = useState(false); // State for chat
+  const [initialItems, setInitialItems] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false); // State for chat visibility
   const [health, setHealth] = useState(100);
   const [mana, setMana] = useState(100);
   const [players, setPlayers] = useState({});
   const [npcs, setNPCs] = useState({});
   const [weapon, setWeapon] = useState(null);
 
-  const chatRef = useRef(null); // Ref for Chat component
+  const chatRef = useRef(null); // Ref for Chat component to manage messages
 
+  // Handle user registration by emitting 'register' event to the server
   const handleRegister = () => {
     if (username.trim() !== "") {
-      socket.emit("register", { username }, (response) => {
-        if (response.status === "ok") {
-          setPlayer(response.player);
-          setDungeon(response.dungeon);
-          setInitialItems(response.items);
-          setPlayers(response.players);
-          setNPCs(response.npcs);
-          setRegistered(true);
-          console.log(npcs);
-          // Log player's initial position for debugging
-          console.log("Player Initial Position:", response.player.position);
-        } else {
-          alert(response.message);
-        }
-      });
+      socket.emit("register", { username });
     }
   };
 
-  // Function to add messages to Chat
+  // Function to add messages to the Chat component
   const addChatMessage = (msg) => {
     if (chatRef.current && chatRef.current.addMessage) {
       chatRef.current.addMessage(msg);
     }
   };
 
-  // Callback function to open chat, to be passed to Game.js
+  // Callback function to open chat, passed to Game.js
   const handleOpenChat = () => {
     console.log("Opening chat.");
     setIsChatOpen(true);
   };
 
+  // Handle 'initialState' event from the server to set up the initial game state
+  useEffect(() => {
+    const handleInitialState = (data) => {
+      setPlayer(data.player);
+      setDungeon(data.dungeon);
+      setInitialItems(data.items);
+      console.log("initial items", data.items);
+      setPlayers(data.players);
+      console.log("initial players", data.players);
+      setNPCs(
+        data.npcs.reduce((acc, npc) => {
+          acc[npc.id] = npc;
+          return acc;
+        }, {})
+      );
+      setRegistered(true);
+      console.log("Initial State Received:", data);
+      console.log("Player Initial Position:", data.player.position);
+    };
+
+    socket.on("initialState", handleInitialState);
+
+    // Optional: Handle registration errors if the server emits any
+    const handleRegistrationError = (message) => {
+      alert(message);
+    };
+
+    socket.on("registrationError", handleRegistrationError);
+
+    // Cleanup event listeners on unmount
+    return () => {
+      socket.off("initialState", handleInitialState);
+      socket.off("registrationError", handleRegistrationError);
+    };
+  }, []);
+
   return (
     <div>
+      {/* Registration Screen */}
       {!registered ? (
         <div
           className="login"
@@ -94,6 +120,7 @@ const App = () => {
           </button>
         </div>
       ) : (
+        /* Game Interface */
         <div
           className="game-container"
           style={{
@@ -102,8 +129,10 @@ const App = () => {
             position: "relative", // To position Chat absolutely
           }}
         >
+          {/* Background Music */}
           <BackgroundMusic />
-          {/* Render Chat outside the Canvas */}
+
+          {/* Chat Component */}
           <Chat
             ref={chatRef}
             socket={socket}
@@ -113,8 +142,11 @@ const App = () => {
               setIsChatOpen(false);
             }}
           />
+
+          {/* Health and Mana Bars */}
           <HealthBar health={health} mana={mana} />
 
+          {/* 3D Game Canvas */}
           <div
             className="canvas-wrapper"
             style={{
@@ -122,9 +154,9 @@ const App = () => {
               height: "100%",
             }}
           >
-            <Canvas>
+            <Canvas shadows>
               <ErrorBoundary>
-                <Suspense
+                <React.Suspense
                   fallback={
                     <Html center>
                       <div
@@ -152,12 +184,14 @@ const App = () => {
                     setMana={setMana}
                     setWeapon={setWeapon}
                     initialPlayers={players}
-                    initialNPCs={npcs} // Pass the callback
+                    initialNPCs={npcs} // Pass initial NPCs to Game component
                   />
-                </Suspense>
+                </React.Suspense>
               </ErrorBoundary>
             </Canvas>
           </div>
+
+          {/* Crosshair for Aim */}
           <div
             style={{
               position: "absolute",

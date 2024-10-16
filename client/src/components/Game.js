@@ -24,7 +24,8 @@ const Player = ({ players, localId }) => {
     if (players[localId]) {
       const { x, y, z } = players[localId].position;
       camera.position.set(x, y + 1.2, z);
-      //console.log("Camera initialized at:", camera.position.toArray());
+      // Optionally, you can log the camera position for debugging
+      // console.log("Camera initialized at:", camera.position.toArray());
     }
   }, [camera, players, localId]);
 
@@ -42,11 +43,11 @@ const Game = ({
   setMana,
   setWeapon,
   initialPlayers,
-  initialNPCs, // Callback to open chat
+  initialNPCs, // Initial NPCs from server
 }) => {
   const [players, setPlayers] = useState(initialPlayers);
   const [npcs, setNPCs] = useState(initialNPCs);
-  const [dungeonGrid, setDungeonGrid] = useState(null);
+  const [dungeonGrid, setDungeonGrid] = useState(dungeon);
   const [items, setItems] = useState(initialItems); // State to hold items
   const [localId, setLocalId] = useState(null);
   const [isHit, setIsHit] = useState(false);
@@ -67,6 +68,7 @@ const Game = ({
     triggerDeath,
   } = useAudio();
   const { camera, scene } = useThree();
+
   // Function to calculate distance between two positions
   const calculateDistance = (pos1, pos2) => {
     const dx = pos1.x - pos2.x;
@@ -110,6 +112,7 @@ const Game = ({
       };
     });
   };
+
   // Initialize player
   useEffect(() => {
     if (player) {
@@ -129,19 +132,11 @@ const Game = ({
 
     // Player moved
     socket.on("playerMoved", ({ userId, position }) => {
-      if (userId === localId) return;
+      if (userId === localId) return; // Local player movement is handled separately
 
       setPlayers((prev) => ({
         ...prev,
         [userId]: { ...prev[userId], position },
-      }));
-    });
-
-    socket.on("npcMoved", ({ id, position }) => {
-      console.log("npcMovement", id, npcs[id]);
-      setNPCs((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], position },
       }));
     });
 
@@ -170,7 +165,7 @@ const Game = ({
     // Item added
     socket.on("itemAdded", (item) => {
       setItems((prev) => [...prev, item]);
-      console.log("itemAdded", items);
+      console.log("itemAdded", item);
     });
 
     // Item removed
@@ -268,13 +263,47 @@ const Game = ({
       }
     });
 
-    // Bullet miss (optional)
-    socket.on("bulletMiss", ({ shooterId, direction }) => {
-      // Optionally, handle bullet miss (e.g., display bullet trail)
+    // NPC Added
+    socket.on("npcAdded", (npc) => {
+      console.log("NPC added:", npc.id);
+      setNPCs((prev) => ({ ...prev, [npc.id]: npc }));
     });
 
-    socket.on("statsUpdate", (stats) => {
-      players[localId].stats = stats;
+    // NPC Removed
+    socket.on("npcRemoved", ({ id }) => {
+      console.log("NPC removed:", id);
+      setNPCs((prev) => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+    });
+
+    // NPC Moved
+    socket.on("npcMoved", ({ id, position }) => {
+      setNPCs((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], position },
+      }));
+    });
+
+    // NPC Hit
+    socket.on("npcHit", ({ id, damage, newHealth }) => {
+      setNPCs((prev) => {
+        if (!prev[id]) return prev;
+        const newPrev = {
+          ...prev,
+          [id]: {
+            ...prev[id],
+            stats: { ...prev[id].stats, health: newHealth },
+          },
+        };
+        return newPrev;
+      });
+      addChatMessage(`${npcs[id].type} was hit for ${damage} damage.`);
+      if (newHealth <= 0) {
+        addChatMessage(`${npcs[id].type} was killed`);
+      }
     });
 
     // Cleanup on unmount
@@ -289,14 +318,17 @@ const Game = ({
       socket.off("playerHit");
       socket.off("playerRespawned");
       socket.off("bulletHit");
-      socket.off("bulletMiss");
+      socket.off("npcAdded");
+      socket.off("npcRemoved");
+      socket.off("npcMoved");
+      socket.off("npcHit");
     };
-  }, [socket, localId, players, addChatMessage]);
+  }, [socket, localId, players, addChatMessage, triggerHit, triggerDeath]);
 
   // Set dungeon grid
   useEffect(() => {
     if (dungeon) {
-      setDungeonGrid(dungeon);
+      setDungeonGrid(dungeon); // Assuming dungeon has a 'grid' property
     }
   }, [dungeon]);
 
@@ -354,16 +386,20 @@ const Game = ({
     };
   }, []);
 
+  // Update health, mana, and weapon based on player state
   useEffect(() => {
-    setHealth(players[localId]?.stats.health);
-    setMana(players[localId]?.stats.mana);
-    setWeapon(players[localId]?.inventory[players[localId]?.equippedIndex]);
-  }, [players[localId]]);
+    if (players[localId]) {
+      setHealth(players[localId].stats.health);
+      setMana(players[localId].stats.mana);
+      setWeapon(players[localId].inventory[players[localId].equippedIndex]);
+    }
+  }, [players, localId, setHealth, setMana, setWeapon]);
 
   // Handle continuous movement with sliding
   useFrame((state, delta) => {
     if (!controlsRef.current?.isLocked) return;
     if (!localId || !players[localId]) return;
+
     const { x, y, z } = players[localId].position;
     const cameraDirection = new THREE.Vector3();
     state.camera.getWorldDirection(cameraDirection);
@@ -374,7 +410,7 @@ const Game = ({
     cameraRight.crossVectors(state.camera.up, cameraDirection).normalize();
 
     const moveVector = new THREE.Vector3(0, 0, 0);
-    const speed = 5;
+    const speed = 3;
 
     if (keysPressed.current["w"]) {
       moveVector.add(cameraDirection);
@@ -388,12 +424,12 @@ const Game = ({
     if (keysPressed.current["d"]) {
       moveVector.sub(cameraRight);
     }
+
     if (moveVector.length() > 0) {
       moveVector.normalize().multiplyScalar(speed * delta);
       const desiredPos = { x: x + moveVector.x, y, z: z + moveVector.z };
 
       const canMove = checkCollision(desiredPos);
-
       if (canMove) {
         setPlayers((prev) => ({
           ...prev,
@@ -402,7 +438,6 @@ const Game = ({
 
         triggerFootstep();
         socket.emit("move", { position: desiredPos });
-        //console.log(`Player ${localId} moved to ${JSON.stringify(desiredPos)}`);
       } else {
         // Attempt to slide along the X and Z axes separately
 
@@ -430,9 +465,9 @@ const Game = ({
 
           triggerFootstep();
           socket.emit("move", { position: finalPos });
-          //console.log(`Player ${localId} slid to ${JSON.stringify(finalPos)}`);
         } else {
-          //console.log("Collision detected. Movement blocked.");
+          // Collision detected. Movement blocked.
+          // Optionally, trigger a sound or visual effect
         }
       }
     }
@@ -514,15 +549,15 @@ const Game = ({
       if (!equippedItem) return;
 
       setIsAttacking(true);
-      if (equippedItem.type === "sword") {
-        socket.emit("attack", { weapon: "sword" });
-        // Trigger sword attack animation here
-        triggerSwing();
-      } else if (equippedItem.type === "gun") {
+      if (equippedItem.class === "melee") {
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
-        socket.emit("attack", { weapon: "gun", direction: direction });
-        // Trigger gun shoot animation here
+        socket.emit("attack", { direction: direction });
+        triggerSwing();
+      } else if (equippedItem.class === "ranged") {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        socket.emit("attack", { direction: direction });
         triggerGunshot();
       }
     };
@@ -537,7 +572,15 @@ const Game = ({
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [addChatMessage, camera, socket, localId, players]);
+  }, [
+    addChatMessage,
+    camera,
+    socket,
+    localId,
+    players,
+    triggerSwing,
+    triggerGunshot,
+  ]);
 
   return (
     <>
@@ -555,12 +598,11 @@ const Game = ({
       />
       <directionalLight position={[10, 10, 5]} intensity={0.7} color="#645" />
       <Sky sunPosition={[100, 20, 100]} />
-      {dungeonGrid && <Dungeon grid={dungeonGrid} />}
       <Items items={items} />
       <Player players={players} localId={localId} />
       <OtherPlayers players={players} localId={localId} />
       <NPCs npcs={npcs} />
-      {/* Render HitMarkers */}
+      {dungeonGrid && <Dungeon grid={dungeonGrid} />}
       {hitMarkers.map((marker) => (
         <HitMarker
           key={marker.id}
@@ -570,7 +612,6 @@ const Game = ({
           }
         />
       ))}
-      {/* Render PositionalSound for gunshots */}
       {gunshotPositions.map((pos, index) => (
         <PositionalSound
           key={index}
@@ -578,7 +619,6 @@ const Game = ({
           volume={0.5}
         />
       ))}
-      {/* <Bullets bullets={bullets} setBullets={setBullets} />{" "} */}
       <FirstPersonWeapon
         equippedItem={
           players[localId]?.inventory[players[localId]?.equippedIndex]

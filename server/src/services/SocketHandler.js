@@ -17,13 +17,13 @@ class SocketHandler {
       console.log(`New client connected: ${socket.id}`);
 
       // Handle player registration
-      socket.on("register", ({ username }, callback) => {
+      socket.on("register", ({ username }) => {
         try {
           this.gameManager.addPlayer(socket, { username });
-          callback({ status: "ok" });
+          //callback({ status: "ok" });
         } catch (error) {
           console.error(error);
-          callback({ status: "error", message: "Registration failed" });
+          //callback({ status: "error", message: "Registration failed" });
         }
       });
 
