@@ -151,6 +151,15 @@ class PlayerManager {
       .emit("inventoryUpdated", this.players[socketId].inventory);
   }
 
+  readyItem(socketId, index, callback) {
+    if (this.players[socketId].inventory[index]) {
+      this.players[socketId].equippedIndex = index;
+      callback({ status: "ok" });
+    } else {
+      callback({ status: "error", message: "index not in player inv" });
+    }
+  }
+
   sendChatMessage(socketId, message) {
     const player = this.players[socketId];
     if (player) {

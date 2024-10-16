@@ -47,6 +47,10 @@ class SocketHandler {
         this.gameManager.handlePlayerUseItem(socket.id, direction);
       });
 
+      socket.on("readyItem", (index, callback) => {
+        this.gameManager.handlePlayerReadyItem(socket.id, index, callback);
+      });
+
       // Handle chat messages
       socket.on("chatMessage", (message) => {
         this.gameManager.handleChatMessage(socket.id, message);

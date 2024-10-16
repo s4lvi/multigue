@@ -106,14 +106,18 @@ const Game = ({
 
   // Function to cycle through inventory
   const cycleInventory = () => {
-    setPlayers((prev) => {
-      const player = prev[localId];
-      if (!player || !player.inventory.length) return prev;
-      const newIndex = (player.equippedIndex + 1) % player.inventory.length;
-      return {
-        ...prev,
-        [localId]: { ...player, equippedIndex: newIndex },
-      };
+    const player = players[localId];
+    if (!player || !player.inventory.length) return prev;
+    const newIndex = (player.equippedIndex + 1) % player.inventory.length;
+    socket.emit("readyItem", newIndex, (response) => {
+      if (response.status === "ok") {
+        setPlayers((prev) => {
+          return {
+            ...prev,
+            [localId]: { ...player, equippedIndex: newIndex },
+          };
+        });
+      }
     });
   };
 
@@ -179,7 +183,7 @@ const Game = ({
 
     // Inventory updated
     socket.on("inventoryUpdated", (inventory) => {
-      console.log("inv update");
+      console.log("inv update", inventory);
       setPlayers((prev) => ({
         ...prev,
         [localId]: {
@@ -566,7 +570,6 @@ const Game = ({
 
       const equippedIndex = players[localId].equippedIndex;
       const equippedItem = players[localId].inventory[equippedIndex];
-      console.log("equipped item", equippedItem);
       if (!equippedItem) return;
 
       setIsAttacking(true);
@@ -587,6 +590,21 @@ const Game = ({
         socket.emit("useItem", { itemId: equippedItem.id }, (response) => {
           if (response.status === "ok") {
             addChatMessage(`Used ${equippedItem.name}!`);
+            setPlayers((prev) => {
+              const player = prev[localId];
+              if (!player || !player.inventory.length) return prev;
+              const newInv = player.inventory.splice(player.equippedIndex, 1);
+              console.log("setting newInv", newInv);
+              const newIndex = -1;
+              return {
+                ...prev,
+                [localId]: {
+                  ...player,
+                  equippedIndex: newIndex,
+                  inventory: newInv,
+                },
+              };
+            });
           } else {
             addChatMessage(`Failed to use item: ${response.message}`);
           }

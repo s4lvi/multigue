@@ -52,6 +52,9 @@ class GameManager {
   handlePlayerUseItem(socketId, direction) {
     this.playerManager.useItem(socketId, direction);
   }
+  handlePlayerReadyItem(socketId, index, callback) {
+    this.playerManager.readyItem(socketId, index, callback);
+  }
 
   handlePlayerPickup(socketId, itemId, callback) {
     this.itemManager.pickupItem(socketId, itemId, callback);
