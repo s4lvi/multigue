@@ -63,7 +63,7 @@ class NPC {
       z: this.position.z + this.direction.z * speed,
     };
 
-    if (!checkCollision(newPos, dungeonGrid)) {
+    if (checkCollision(newPos, dungeonGrid)) {
       this.position = newPos;
     } else {
       this.direction = null; // Change direction upon collision
@@ -91,7 +91,7 @@ class NPC {
       z: this.position.z + normalizedDir.z * speed,
     };
 
-    if (!checkCollision(newPos, dungeonGrid)) {
+    if (checkCollision(newPos, dungeonGrid)) {
       this.position = newPos;
     }
 

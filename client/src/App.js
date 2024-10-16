@@ -55,9 +55,7 @@ const App = () => {
       setPlayer(data.player);
       setDungeon(data.dungeon);
       setInitialItems(data.items);
-      console.log("initial items", data.items);
       setPlayers(data.players);
-      console.log("initial players", data.players);
       setNPCs(
         data.npcs.reduce((acc, npc) => {
           acc[npc.id] = npc;
@@ -66,7 +64,6 @@ const App = () => {
       );
       setRegistered(true);
       console.log("Initial State Received:", data);
-      console.log("Player Initial Position:", data.player.position);
     };
 
     socket.on("initialState", handleInitialState);

@@ -281,7 +281,6 @@ const Game = ({
 
     // NPC Moved
     socket.on("npcMoved", ({ id, position }) => {
-      console.log("got npc moved");
       setNPCs((prev) => ({
         ...prev,
         [id]: { ...prev[id], position },

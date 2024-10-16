@@ -10,7 +10,6 @@ const calculateDistance = (pos1, pos2) => {
 const checkCollision = (position, dungeonGrid) => {
   const gridX = Math.floor(position.x + dungeonGrid[0].length / 2);
   const gridZ = Math.floor(position.z + dungeonGrid.length / 2);
-
   if (
     gridX < 0 ||
     gridX >= dungeonGrid[0].length ||
