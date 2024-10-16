@@ -21,8 +21,7 @@ const FirstPersonWeapon = ({ equippedItem, attacking, hit }) => {
   useEffect(() => {
     let tex;
     if (equippedItem) {
-      console.log(equippedItem.type);
-      tex = weaponTextures[equippedItem.type];
+      tex = weaponTextures[equippedItem.name];
       tex.minFilter = THREE.NearestFilter;
       tex.magFilter = THREE.NearestFilter;
     }

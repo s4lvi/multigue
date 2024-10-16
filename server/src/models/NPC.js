@@ -12,6 +12,8 @@ class NPC {
     this.state = "roaming"; // Possible states: "roaming", "chasing", "attacking"
     this.targetPlayerId = null;
     this.direction = null;
+    this.cooldown = 2000;
+    this.lastAttackTime = Date.now();
   }
 
   updateState(players) {
@@ -96,7 +98,7 @@ class NPC {
     }
 
     const distance = calculateDistance(this.position, targetPlayer.position);
-    if (distance < 1.5) {
+    if (distance < 1.5 && Date.now() - this.lastAttackTime >= this.cooldown) {
       this.state = "attacking";
       this.attack(targetPlayer);
     }
@@ -104,6 +106,7 @@ class NPC {
 
   attack(targetPlayer) {
     targetPlayer.stats.health -= this.stats.damage;
+    this.lastAttackTime = Date.now();
     // The GameManager handles emitting events related to player hits and deaths
     // It's assumed that GameManager listens to changes in player stats and acts accordingly
   }

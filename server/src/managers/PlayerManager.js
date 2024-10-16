@@ -9,10 +9,6 @@ class PlayerManager {
     this.gameManager = gameManager;
     this.io = io;
     this.players = gameManager.players;
-    this.WEAPON_PROPERTIES = {
-      sword: { damage: 25, range: 1 },
-      gun: { damage: 15, range: 1000 },
-    };
   }
 
   addPlayer(socket, { username }) {
@@ -83,10 +79,6 @@ class PlayerManager {
 
     const equippedItem = player.inventory[player.equippedIndex];
     if (!equippedItem) return;
-
-    const weapon = this.WEAPON_PROPERTIES[equippedItem.type];
-    if (!weapon) return;
-
     if (!direction) return;
     const pHits = this.gameManager.playerManager.findPlayersInDirection(
       player.position,
@@ -99,10 +91,10 @@ class PlayerManager {
         hitPlayer.position
       );
       if (hitPlayer && distance <= equippedItem.stats.range) {
-        hitPlayer.stats.health -= weapon.damage;
+        hitPlayer.stats.health -= equippedItem.stats.damage;
         this.io.to("overworld").emit("playerHit", {
           userId: hitId,
-          damage: weapon.damage,
+          damage: equippedItem.stats.damage,
           newHealth: hitPlayer.stats.health,
         });
         if (hitPlayer.stats.health <= 0) {
@@ -118,10 +110,10 @@ class PlayerManager {
       const npc = this.gameManager.npcManager.getNPC(npcId);
       const distance = this.calculateDistance(player.position, npc.position);
       if (npc && distance <= equippedItem.stats.range) {
-        npc.takeDamage(weapon.damage);
+        npc.takeDamage(equippedItem.stats.damage);
         this.io.to("overworld").emit("npcHit", {
           id: npcId,
-          damage: weapon.damage,
+          damage: equippedItem.stats.damage,
           newHealth: npc.stats.health,
         });
         if (npc.stats.health <= 0) {

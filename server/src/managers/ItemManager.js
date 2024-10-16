@@ -84,7 +84,9 @@ class ItemManager {
       if (position) {
         const item = {
           id: uuidv4(),
-          type: itemDef.name,
+          name: itemDef.name,
+          type: itemDef.type,
+          class: itemDef.class,
           stats: itemDef.stats,
           description: itemDef.description,
           position: {
@@ -96,7 +98,7 @@ class ItemManager {
         this.items.push(item);
         this.io.to("overworld").emit("itemAdded", item);
         console.log(
-          `${category.slice(0, -1).capitalize()} scattered: ${item.type} at (${
+          `${category.slice(0, -1).capitalize()} scattered: ${item.name} at (${
             item.position.x
           }, ${item.position.z})`
         );
@@ -238,7 +240,8 @@ class ItemManager {
 
     const corpse = {
       id: uuidv4(),
-      type: corpseDef.name,
+      name: corpseDef.name,
+      type: corpseDef.type,
       stats: corpseDef.stats,
       description: corpseDef.description,
       position: { ...position },

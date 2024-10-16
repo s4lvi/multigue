@@ -47,7 +47,7 @@ const Items = React.memo(({ items }) => {
   return (
     <>
       {items.map((item) => {
-        const texture = getTextureByType(item.type);
+        const texture = getTextureByType(item.name);
         if (!texture) return null; // Skip rendering unknown item types
 
         return (

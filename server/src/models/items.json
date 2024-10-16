@@ -44,6 +44,7 @@
     "misc": [
       {
         "name": "corpse",
+        "type": "corpse",
         "stats": {
           "decayTime": 300
         },

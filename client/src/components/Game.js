@@ -90,7 +90,7 @@ const Game = ({
     if (nearbyItem) {
       socket.emit("pickupItem", nearbyItem.id, (response) => {
         if (response.status === "ok") {
-          addChatMessage(`Picked up a ${nearbyItem.type}!`);
+          addChatMessage(`Picked up a ${nearbyItem.name}!`);
         } else {
           addChatMessage(`Failed to pick up item: ${response.message}`);
         }
@@ -301,6 +301,7 @@ const Game = ({
         return newPrev;
       });
       addChatMessage(`${npcs[id].type} was hit for ${damage} damage.`);
+      triggerHit();
       if (newHealth <= 0) {
         addChatMessage(`${npcs[id].type} was killed`);
       }
